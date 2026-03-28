@@ -1,0 +1,82 @@
+name: Sync OpenAPI from API
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_repo:
+        description: 'API repository (owner/repo)'
+        required: false
+        default: 'SherryLabs/relayer-api'
+      branch:
+        description: 'Branch to fetch from'
+        required: false
+        default: 'develop'
+  repository_dispatch:
+    types: [openapi-updated]
+
+jobs:
+  sync-openapi:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Mintlify docs
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine source repository
+        id: repo_info
+        run: |
+          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+            echo "repo=${{ github.event.client_payload.api_repo || 'SherryLabs/relayer-api' }}" >> $GITHUB_OUTPUT
+            echo "branch=${{ github.event.client_payload.branch || 'develop' }}" >> $GITHUB_OUTPUT
+          else
+            echo "repo=${{ github.event.inputs.api_repo || 'SherryLabs/relayer-api' }}" >> $GITHUB_OUTPUT
+            echo "branch=${{ github.event.inputs.branch || 'develop' }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download latest OpenAPI
+        run: |
+          API_REPO="${{ steps.repo_info.outputs.repo }}"
+          BRANCH="${{ steps.repo_info.outputs.branch }}"
+          echo "Downloading OpenAPI from $API_REPO (branch: $BRANCH)"
+
+          HTTP_CODE=$(curl -s -o /tmp/openapi.json -w "%{http_code}" \
+            -H "Accept: application/vnd.github.v3.raw" \
+            -L "https://api.github.com/repos/$API_REPO/contents/docs/openapi.json?ref=$BRANCH")
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Error: Got HTTP $HTTP_CODE from GitHub API"
+            cat /tmp/openapi.json
+            exit 1
+          fi
+
+          if ! python3 -c "import json; d=json.load(open('/tmp/openapi.json')); assert 'openapi' in d" 2>/dev/null; then
+            echo "Error: Downloaded file is not a valid OpenAPI spec"
+            exit 1
+          fi
+
+          cp /tmp/openapi.json api-reference/openapi.json
+          echo "OpenAPI downloaded successfully"
+          echo "File size: $(ls -lh api-reference/openapi.json | awk '{print $5}')"
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if git diff --quiet api-reference/openapi.json; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            git diff --stat api-reference/openapi.json || true
+          fi
+
+      - name: Commit if changed
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add api-reference/openapi.json
+          git commit -m "chore: sync OpenAPI from API repo"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
