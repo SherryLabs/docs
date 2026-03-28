@@ -1,6 +1,131 @@
 ---
 title: "Quickstart"
 description: "Make your first API call in under 5 minutes"
+sidebarTitle: "Quickstart"
 ---
 
-Content coming in Phase 19.
+This guide walks you through making your first Relayer API call. You will verify connectivity with the health endpoint, then make an authenticated request.
+
+## Prerequisites
+
+- An API key from your operator dashboard (see [Authentication](/get-started/authentication))
+- `curl` or Node.js installed
+
+## Step 1: Verify Connectivity
+
+Start with the health check endpoint. It requires no authentication and confirms the API is reachable.
+
+<CodeGroup>
+
+```bash cURL
+curl https://relayer-api.onrender.com/health
+```
+
+```typescript Node.js
+const response = await fetch("https://relayer-api.onrender.com/health");
+const data = await response.json();
+console.log(data);
+// Expected: { "status": "ok" }
+```
+
+</CodeGroup>
+
+You should receive:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+## Step 2: Set Up Your API Key
+
+Store your API key as an environment variable so you do not hardcode it:
+
+<CodeGroup>
+
+```bash Terminal
+export RELAYER_API_KEY="sk_client_key_v1_your_key_here"
+```
+
+```text .env file
+RELAYER_API_KEY=sk_client_key_v1_your_key_here
+```
+
+</CodeGroup>
+
+## Step 3: Make an Authenticated Request
+
+Now make a request that requires authentication. This example lists available exchange quotes:
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET https://relayer-api.onrender.com/v1/exchange/quotes \
+  -H "Authorization: ApiKey $RELAYER_API_KEY" \
+  -H "Content-Type: application/json"
+```
+
+```typescript Node.js
+const apiKey = process.env.RELAYER_API_KEY;
+
+const response = await fetch(
+  "https://relayer-api.onrender.com/v1/exchange/quotes",
+  {
+    headers: {
+      "Authorization": `ApiKey ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+  }
+);
+
+const result = await response.json();
+console.log(JSON.stringify(result, null, 2));
+```
+
+</CodeGroup>
+
+A successful response looks like:
+
+```json
+{
+  "success": true,
+  "message": "Success",
+  "data": [],
+  "statusCode": 200,
+  "timestamp": "2026-03-28T12:00:00.000Z",
+  "path": "/v1/exchange/quotes"
+}
+```
+
+<Tip>
+  An empty `data` array is expected on a fresh sandbox account. It means the API authenticated your request successfully -- you just have not created any quotes yet.
+</Tip>
+
+## Step 4: Explore the Kits
+
+Now that you are authenticated, explore the Kit that matches your use case:
+
+<CardGroup cols={2}>
+  <Card title="Exchange Kit" icon="arrows-rotate" href="/exchange/overview">
+    Build OTC exchange flows with quotes, spread, and settlement.
+  </Card>
+  <Card title="Signing Kit" icon="key" href="/signing/overview">
+    Create wallets and sign transactions with Turnkey.
+  </Card>
+  <Card title="Payout Kit" icon="money-bill-transfer" href="/payout/overview">
+    Set up fiat payout rails and manage recipients.
+  </Card>
+  <Card title="Action Kit" icon="bolt" href="/action/overview">
+    Register mini-apps and build on-chain actions.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| `Connection refused` | Check the base URL -- sandbox is `https://relayer-api.onrender.com` |
+| `401 Unauthorized` | Verify your `Authorization` header uses `ApiKey` prefix (not `Bearer`) |
+| `404 Not Found` | Check the endpoint path starts with `/v1/` |
+| Slow first response | Sandbox runs on Render free tier -- first request after idle may take 30-60 seconds |
