@@ -1,6 +1,283 @@
 ---
 title: "Signing Flow Guide"
-description: "Create a wallet and sign your first transaction"
+description: "Create a wallet, generate an address, sign a transaction, and broadcast to the blockchain"
+sidebarTitle: "Flow Guide"
 ---
 
-Content coming in Phase 21.
+<Warning>
+  This guide results in real on-chain transactions when using production credentials. Use the sandbox environment (`https://relayer-api.onrender.com`) while testing. Blockchain transactions are irreversible once broadcast.
+</Warning>
+
+This guide walks through the complete Signing Kit flow: creating a wallet, generating an address, signing a native token transfer, and broadcasting it to the network.
+
+## Prerequisites
+
+- A Relayer API key with the Signing module enabled (see [Authentication](/get-started/authentication))
+- A funded source address (for production; sandbox may use test networks)
+
+<CodeGroup>
+
+```bash Environment
+export RELAYER_API_KEY="sk_client_key_v1_your_key_here"
+export BASE_URL="https://relayer-api.onrender.com"
+```
+
+</CodeGroup>
+
+## Steps
+
+<Steps>
+  <Step title="Create a wallet">
+    Create a new Turnkey-backed wallet. A wallet is the root container — you generate addresses from it.
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl -X POST $BASE_URL/v1/wallets \
+      -H "Authorization: ApiKey $RELAYER_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "name": "My Escrow Wallet"
+      }'
+    ```
+
+    ```typescript Node.js
+    const response = await fetch(`${BASE_URL}/v1/wallets`, {
+      method: "POST",
+      headers: {
+        "Authorization": `ApiKey ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "My Escrow Wallet",
+      }),
+    });
+    const { data } = await response.json();
+    // data.walletId — store this for address creation
+    const walletId = data.walletId;
+    console.log(`Wallet created: ${walletId}`);
+    ```
+
+    </CodeGroup>
+
+    Save the `walletId` — you need it to generate addresses.
+  </Step>
+
+  <Step title="Generate an address">
+    Create a blockchain address on your chosen network. Each address is derived from the wallet's root key.
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl -X POST $BASE_URL/v1/wallets/$WALLET_ID/addresses \
+      -H "Authorization: ApiKey $RELAYER_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "curve": "CURVE_SECP256K1",
+        "addressFormat": "ADDRESS_FORMAT_ETHEREUM"
+      }'
+    ```
+
+    ```typescript Node.js
+    const response = await fetch(
+      `${BASE_URL}/v1/wallets/${walletId}/addresses`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `ApiKey ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          curve: "CURVE_SECP256K1",
+          addressFormat: "ADDRESS_FORMAT_ETHEREUM",
+        }),
+      }
+    );
+    const { data } = await response.json();
+    // data.address — the generated Ethereum address (0x...)
+    const address = data.address;
+    console.log(`Address: ${address}`);
+    ```
+
+    </CodeGroup>
+
+    <Tip>
+      Use `ADDRESS_FORMAT_ETHEREUM` for all EVM-compatible networks (Ethereum, Polygon, Arbitrum, Base, etc.).
+    </Tip>
+  </Step>
+
+  <Step title="Sign a native token transfer">
+    Create a signed transaction for a native token transfer (ETH in this example). The transaction is signed by Turnkey but not yet broadcast.
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl -X POST $BASE_URL/v1/transactions/sign/transfer/native \
+      -H "Authorization: ApiKey $RELAYER_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "walletId": "'$WALLET_ID'",
+        "from": "0xYourWalletAddress",
+        "to": "0xRecipientAddress",
+        "amount": "0.01",
+        "network": "sepolia"
+      }'
+    ```
+
+    ```typescript Node.js
+    const response = await fetch(
+      `${BASE_URL}/v1/transactions/sign/transfer/native`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `ApiKey ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          walletId,
+          from: "0xYourWalletAddress",
+          to: "0xRecipientAddress",
+          amount: "0.01",
+          network: "sepolia",
+        }),
+      }
+    );
+    const { data } = await response.json();
+    // data.transactionId — use this to broadcast
+    // data.status === "signed"
+    const transactionId = data.transactionId;
+    ```
+
+    </CodeGroup>
+
+    <Warning>
+      Double-check the `to` address before proceeding. Once broadcast in the next step, the transfer cannot be reversed.
+    </Warning>
+  </Step>
+
+  <Step title="Broadcast the transaction">
+    Submit the signed transaction to the blockchain. This is the point of no return.
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl -X POST $BASE_URL/v1/transactions/broadcast/$TRANSACTION_ID \
+      -H "Authorization: ApiKey $RELAYER_API_KEY" \
+      -H "Content-Type: application/json"
+    ```
+
+    ```typescript Node.js
+    const response = await fetch(
+      `${BASE_URL}/v1/transactions/broadcast/${transactionId}`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `ApiKey ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const { data } = await response.json();
+    // data.txHash — on-chain transaction hash
+    // data.status === "broadcast"
+    console.log(`Broadcast. TX hash: ${data.txHash}`);
+    ```
+
+    </CodeGroup>
+  </Step>
+
+  <Step title="Check broadcast status">
+    Poll the broadcast status to confirm on-chain confirmation.
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl $BASE_URL/v1/transactions/broadcast/$TRANSACTION_ID \
+      -H "Authorization: ApiKey $RELAYER_API_KEY"
+    ```
+
+    ```typescript Node.js
+    const response = await fetch(
+      `${BASE_URL}/v1/transactions/broadcast/${transactionId}`,
+      {
+        headers: { "Authorization": `ApiKey ${apiKey}` },
+      }
+    );
+    const { data } = await response.json();
+    // data.status: "broadcast" | "confirmed" | "failed"
+    // data.blockNumber — set once confirmed
+    console.log(`Status: ${data.status}, Block: ${data.blockNumber}`);
+    ```
+
+    </CodeGroup>
+  </Step>
+</Steps>
+
+## Signing an ERC20 Transfer
+
+For ERC20 tokens, use the token transfer endpoint instead:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST $BASE_URL/v1/transactions/sign/transfer/token \
+  -H "Authorization: ApiKey $RELAYER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "walletId": "'$WALLET_ID'",
+    "from": "0xYourWalletAddress",
+    "to": "0xRecipientAddress",
+    "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "amount": "100",
+    "network": "mainnet"
+  }'
+```
+
+```typescript Node.js
+const response = await fetch(
+  `${BASE_URL}/v1/transactions/sign/transfer/token`,
+  {
+    method: "POST",
+    headers: {
+      "Authorization": `ApiKey ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      walletId,
+      from: "0xYourWalletAddress",
+      to: "0xRecipientAddress",
+      tokenAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC
+      amount: "100",
+      network: "mainnet",
+    }),
+  }
+);
+```
+
+</CodeGroup>
+
+Then broadcast using the same `POST /v1/transactions/broadcast/{transactionId}` step above.
+
+## Cancelling Before Broadcast
+
+A signed transaction that has not been broadcast can be cancelled:
+
+```bash cURL
+curl -X DELETE $BASE_URL/v1/transactions/sign/$TRANSACTION_ID \
+  -H "Authorization: ApiKey $RELAYER_API_KEY"
+```
+
+<Warning>
+  Once `POST /v1/transactions/broadcast/{id}` is called, cancellation is no longer possible. The transaction is submitted to the mempool.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Endpoints" icon="code" href="/signing/endpoints">
+    Configure signing policies and approval flows.
+  </Card>
+  <Card title="API Reference" icon="book" href="/api-reference/introduction">
+    Full endpoint schemas and try-it playground.
+  </Card>
+</CardGroup>

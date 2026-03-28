@@ -1,6 +1,484 @@
 ---
 title: "Signing Endpoints"
-description: "Wallet, escrow, and signing policy API reference"
+description: "Wallet management, transaction signing, signing policies, approval flows, and integrator reference"
+sidebarTitle: "Endpoints"
 ---
 
-Content coming in Phase 21.
+<Warning>
+  All signing and broadcast operations interact with live blockchain networks. Transactions are irreversible once broadcast. Verify destination addresses and amounts carefully before calling any broadcast endpoint.
+</Warning>
+
+Reference for Signing Kit endpoints. For interactive schemas and try-it functionality, see the [API Reference](/api-reference/introduction).
+
+## Wallets
+
+### Create Wallet
+
+Create a new Turnkey-backed wallet. This provisions a Turnkey sub-organization and returns a `walletId`.
+
+```
+POST /v1/wallets
+```
+
+**Request body:**
+```json
+{
+  "name": "My Escrow Wallet"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "walletId": "wallet_abc123",
+    "name": "My Escrow Wallet",
+    "createdAt": "2026-03-28T12:00:00.000Z"
+  }
+}
+```
+
+---
+
+### List Wallets
+
+Retrieve all wallets for your operator account.
+
+```
+GET /v1/wallets
+```
+
+---
+
+### Get Wallet
+
+Retrieve a single wallet by ID.
+
+```
+GET /v1/wallets/{walletId}
+```
+
+---
+
+### Create Wallet Address
+
+Generate a new blockchain address derived from the wallet's root key.
+
+```
+POST /v1/wallets/{walletId}/addresses
+```
+
+**Request body:**
+```json
+{
+  "curve": "CURVE_SECP256K1",
+  "addressFormat": "ADDRESS_FORMAT_ETHEREUM"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `curve` | string | Cryptographic curve. Use `CURVE_SECP256K1` for all EVM chains |
+| `addressFormat` | string | Address encoding. Use `ADDRESS_FORMAT_ETHEREUM` for all EVM chains |
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "address": "0xAbCdEf1234567890...",
+    "addressId": "addr_xyz789",
+    "walletId": "wallet_abc123"
+  }
+}
+```
+
+---
+
+### Get Wallet Addresses
+
+List all addresses generated for a wallet.
+
+```
+GET /v1/wallets/{walletId}/addresses
+```
+
+---
+
+## Transaction Signing
+
+### Sign Native Token Transfer
+
+Sign a transfer of a native blockchain token (ETH, MATIC, etc.). Returns a signed transaction that can be broadcast separately.
+
+```
+POST /v1/transactions/sign/transfer/native
+```
+
+**Request body:**
+```json
+{
+  "walletId": "wallet_abc123",
+  "from": "0xSourceAddress",
+  "to": "0xDestinationAddress",
+  "amount": "0.01",
+  "network": "sepolia"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `walletId` | string | Wallet whose key will sign the transaction |
+| `from` | string | Source address (must be owned by `walletId`) |
+| `to` | string | Destination address |
+| `amount` | string | Amount in native token units (e.g., ETH) |
+| `network` | string | Network slug: `mainnet`, `sepolia`, `polygon`, `arbitrum`, `base` |
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "transactionId": "tx_def456",
+    "status": "signed",
+    "signedPayload": "0x...",
+    "createdAt": "2026-03-28T12:00:00.000Z"
+  }
+}
+```
+
+---
+
+### Sign ERC20 Token Transfer
+
+Sign a transfer of an ERC20 token.
+
+```
+POST /v1/transactions/sign/transfer/token
+```
+
+**Request body:**
+```json
+{
+  "walletId": "wallet_abc123",
+  "from": "0xSourceAddress",
+  "to": "0xDestinationAddress",
+  "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+  "amount": "100",
+  "network": "mainnet"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tokenAddress` | string | ERC20 contract address |
+| `amount` | string | Token amount (in token units, not wei) |
+
+---
+
+### Sign Generic Transaction
+
+Sign a custom transaction with arbitrary calldata. Use for contract interactions not covered by the transfer helpers.
+
+```
+POST /v1/transactions/sign
+```
+
+---
+
+### List Signed Transactions
+
+Retrieve all signed transactions for your operator.
+
+```
+GET /v1/transactions/sign
+```
+
+---
+
+### Get Signed Transaction
+
+Retrieve a single signed transaction by ID.
+
+```
+GET /v1/transactions/sign/{transactionId}
+```
+
+---
+
+### Cancel Pending Transaction
+
+Cancel a signed transaction before it is broadcast.
+
+```
+DELETE /v1/transactions/sign/{transactionId}
+```
+
+<Warning>
+  Cancellation is only possible before broadcast. Once `POST /v1/transactions/broadcast/{id}` is called, the transaction is in the mempool and cannot be cancelled via this API.
+</Warning>
+
+---
+
+## Transaction Broadcasting
+
+### Broadcast Transaction
+
+Submit a signed transaction to the blockchain network.
+
+```
+POST /v1/transactions/broadcast/{transactionId}
+```
+
+No request body required.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "transactionId": "tx_def456",
+    "txHash": "0xabc...def",
+    "status": "broadcast",
+    "network": "sepolia"
+  }
+}
+```
+
+<Warning>
+  This action is irreversible. The transaction is submitted to the blockchain mempool immediately. Verify the signed transaction details with `GET /v1/transactions/sign/{transactionId}` before calling this endpoint.
+</Warning>
+
+---
+
+### Get Broadcast Status
+
+Check the status of a broadcast transaction.
+
+```
+GET /v1/transactions/broadcast/{transactionId}
+```
+
+**Status values:** `broadcast`, `confirmed`, `failed`
+
+**Response (confirmed):**
+```json
+{
+  "success": true,
+  "data": {
+    "transactionId": "tx_def456",
+    "txHash": "0xabc...def",
+    "status": "confirmed",
+    "blockNumber": 7891234,
+    "confirmedAt": "2026-03-28T12:02:00.000Z"
+  }
+}
+```
+
+---
+
+### Retry Broadcast
+
+Retry broadcasting a transaction that failed due to a network error (not a rejected transaction).
+
+```
+POST /v1/transactions/broadcast/{transactionId}/retry
+```
+
+---
+
+### Broadcast Raw Transaction
+
+Submit a pre-signed raw transaction payload directly. Use when you have an externally-signed transaction.
+
+```
+POST /v1/transactions/broadcast/raw
+```
+
+---
+
+### Cancel Pending Blockchain Transactions
+
+Cancel pending (mempool) transactions by submitting a replacement with a higher gas price.
+
+```
+POST /v1/transactions/cancel-pending
+```
+
+<Warning>
+  This operation submits a replacement transaction to the mempool — it incurs gas costs regardless of outcome. There is no guarantee the cancellation will succeed if the original transaction is already being mined.
+</Warning>
+
+---
+
+## Signing Policies
+
+Signing policies restrict which transactions a wallet will sign. Policies are enforced at the Turnkey level.
+
+### List Policies
+
+```
+GET /v1/signing/policies
+```
+
+---
+
+### Create Policy
+
+Define a new signing policy.
+
+```
+POST /v1/signing/policies
+```
+
+**Request body:**
+```json
+{
+  "name": "Max transfer limit",
+  "walletId": "wallet_abc123",
+  "rules": {
+    "maxValueUsd": 10000,
+    "allowedDestinations": ["0xApprovedAddress1", "0xApprovedAddress2"]
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Human-readable policy name |
+| `walletId` | string | Wallet this policy applies to |
+| `rules.maxValueUsd` | number | Maximum transaction value in USD |
+| `rules.allowedDestinations` | string[] | Allowlist of destination addresses (empty = no restriction) |
+
+---
+
+### Update Policy
+
+```
+PATCH /v1/signing/policies/{id}
+```
+
+---
+
+### Delete Policy
+
+```
+DELETE /v1/signing/policies/{id}
+```
+
+---
+
+## Approval Flows
+
+Require human approval for transactions above a threshold before Turnkey signs them.
+
+### Get Approval Config
+
+Retrieve the current approval threshold configuration.
+
+```
+GET /v1/signing/approval-config
+```
+
+---
+
+### Update Approval Config
+
+Set the value threshold above which transactions require approval.
+
+```
+PATCH /v1/signing/approval-config
+```
+
+**Request body:**
+```json
+{
+  "enabled": true,
+  "thresholdUsd": 5000,
+  "requiredApprovers": 1
+}
+```
+
+---
+
+### List Pending Approvals
+
+Retrieve transactions waiting for human approval.
+
+```
+GET /v1/signing/approvals
+```
+
+---
+
+### Approve Request
+
+Approve a pending transaction request.
+
+```
+POST /v1/signing/approvals/{id}/approve
+```
+
+---
+
+### Reject Request
+
+Reject a pending transaction request.
+
+```
+POST /v1/signing/approvals/{id}/reject
+```
+
+---
+
+## Integrators
+
+Integrators are sub-accounts within your operator with isolated wallets, API keys, and signing policies.
+
+### Create Integrator
+
+```
+POST /v1/integrators
+```
+
+**Request body:**
+```json
+{
+  "name": "Client A Signing Account"
+}
+```
+
+---
+
+### List Integrators
+
+```
+GET /v1/integrators
+```
+
+---
+
+### Manage API Keys
+
+Each integrator can have its own API keys:
+
+```
+GET    /v1/integrators/{id}/api-keys        — List keys
+POST   /v1/integrators/{id}/api-keys        — Create key
+DELETE /v1/integrators/{id}/api-keys/{keyId} — Revoke key
+```
+
+---
+
+## Key Rotation
+
+To rotate keys for a wallet, generate a new address from the same wallet using `POST /v1/wallets/{walletId}/addresses`. The new address has a new derived key while the wallet root key remains unchanged in Turnkey's enclave.
+
+For operator-level API key rotation, generate a new key from the dashboard and revoke the old one.
+
+---
+
+## Full API Reference
+
+All endpoints include interactive schemas and a try-it playground in the [API Reference](/api-reference/introduction). Signing Kit endpoints are grouped under the **Wallets**, **Transactions**, **Signing Policies**, and **Signing Approvals** tags.
