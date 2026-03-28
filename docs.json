@@ -11,30 +11,79 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Get Started",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "get-started/overview",
+              "get-started/authentication",
+              "get-started/quickstart"
             ]
-          },
+          }
+        ]
+      },
+      {
+        "tab": "Exchange Kit",
+        "groups": [
           {
-            "group": "Customization",
+            "group": "Exchange Kit",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "exchange/overview",
+              "exchange/flow-guide",
+              "exchange/endpoints"
             ]
-          },
+          }
+        ]
+      },
+      {
+        "tab": "Signing Kit",
+        "groups": [
           {
-            "group": "Writing content",
+            "group": "Signing Kit",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "signing/overview",
+              "signing/flow-guide",
+              "signing/endpoints"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Payout Kit",
+        "groups": [
+          {
+            "group": "Payout Kit",
+            "pages": [
+              "payout/overview",
+              "payout/flow-guide",
+              "payout/endpoints"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Action Kit",
+        "groups": [
+          {
+            "group": "Action Kit",
+            "pages": [
+              "action/overview",
+              "action/flow-guide",
+              "action/endpoints"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Widget Kit",
+        "groups": [
+          {
+            "group": "Widget Kit",
+            "pages": [
+              "widget/overview",
+              "widget/installation",
+              "widget/integration"
             ]
           }
         ]

@@ -1,33 +1,29 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: "API Reference"
+description: "Explore Relayer's 136 endpoints across 30 Kit-aligned tags"
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+## Overview
 
-## Welcome
+The Relayer API provides programmatic access to the full platform. Endpoints are organized by Kit -- Exchange, Signing, Payout, and Action -- so you can find the operations you need based on the domain you are integrating.
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+## Base URL
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+```
+https://api.relayer.fi
+```
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+All API endpoints require a Bearer token passed via the `x-api-key` header. Include your API key in every request:
 
-```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+```bash
+curl -H "x-api-key: sk_your_api_key" \
+  https://api.relayer.fi/v1/health
 ```
+
+For details on obtaining and managing API keys, see the [Authentication guide](/get-started/authentication).
+
+## Exploring Endpoints
+
+Use the sidebar to browse endpoints by Kit. Each tag groups related operations so you can quickly find what you need for your integration.
