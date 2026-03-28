@@ -2,7 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "llms": true,
   "theme": "mint",
-  "name": "Overview | Relayer.fi ",
+  "name": "Overview | Relayer.fi",
   "colors": {
     "primary": "#2C8C99",
     "light": "#38BFC2",
