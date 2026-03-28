@@ -72,7 +72,7 @@ Initial Kit-based architecture. The Relayer API is organized into purpose-built 
 - **Exchange Kit** (`/v1/exchange/*`) — OTC exchange operations: quotes, spread management, client onboarding, settlement
 - **Signing Kit** (`/v1/signing/*`) — Wallet creation, escrow accounts, transaction signing via Turnkey
 - **Payout Kit** (`/v1/payout/*`) — Fiat payout rails via Bridge, recipient management, settlement tracking
-- **Action Kit** (`/v1/action/*`) — Mini-app registry, transaction builders, token lists, on-chain event indexing
+- **Action Kit** (`/v1/action/*`) — Blockchain action registry, transaction builders, token lists, on-chain event indexing
 - **Widget Kit** — Pre-built React components for embedding Relayer functionality
 - Consistent API response envelope: `{ success, message, data, statusCode, timestamp, path }`
 - API key authentication via `Authorization: ApiKey <key>` header

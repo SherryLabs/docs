@@ -4,7 +4,7 @@ description: "Embed blockchain interaction widgets into any React or Next.js app
 sidebarTitle: "Overview"
 ---
 
-Widget Kit is a set of React components and adapters that let you embed blockchain interactions — swaps, transfers, staking — directly in web apps and social platforms. It handles wallet connection, transaction signing, theming, and metadata validation out of the box.
+Widget Kit is a set of React components and adapters that let you embed blockchain interactions — swaps, transfers, staking — directly in web apps and any embedding platform. It handles wallet connection, transaction signing, theming, and metadata validation out of the box.
 
 ## Package Ecosystem
 
@@ -32,15 +32,15 @@ Your app imports `@relayer-fi/widgets` and renders the `Trigger` component. Unde
 
 ## The Trigger Component
 
-`Trigger` is the main embedding surface. It accepts a URL pointing to mini-app metadata (or a pre-validated metadata object) and renders an interactive widget card. The component handles metadata fetching, schema validation, wallet connection, and transaction signing automatically — you provide a URL and a wallet adapter, and Trigger does the rest.
+`Trigger` is the main embedding surface. It accepts a URL pointing to blockchain action metadata (or a pre-validated metadata object) and renders an interactive widget card. The component handles metadata fetching, schema validation, wallet connection, and transaction signing automatically — you provide a URL and a wallet adapter, and Trigger does the rest.
 
 ## Platform Observers
 
-The package ships observers for automatic trigger detection and rendering on Twitter/X, YouTube, and Twitch. These observers scan the DOM for mini-app URLs and render Trigger components inline. A browser extension built on the same primitives is also available. For custom embedding in your own app, use the `Trigger` component directly.
+The package ships observers for automatic trigger detection and rendering on Twitter/X, YouTube, and Twitch. These observers scan the DOM for blockchain action URLs and render Trigger components inline. A browser extension built on the same primitives is also available. For custom embedding in your own app, use the `Trigger` component directly.
 
 ## sherry-sdk
 
-Mini-app metadata is defined and validated using `@sherrylinks/sdk`. The SDK provides TypeScript types, validation functions, and parameter templates for building the metadata objects that power Trigger components. See the [sherry-sdk reference](/widget/sdk) for details.
+Blockchain action metadata is defined and validated using `@sherrylinks/sdk`. The SDK provides TypeScript types, validation functions, and parameter templates for building the metadata objects that power Trigger components. See the [sherry-sdk reference](/widget/sdk) for details.
 
 ## Next Steps
 
@@ -52,6 +52,6 @@ Mini-app metadata is defined and validated using `@sherrylinks/sdk`. The SDK pro
     Embed and theme your first widget.
   </Card>
   <Card title="sherry-sdk" icon="code" href="/widget/sdk">
-    Build mini-app metadata with the SDK.
+    Build blockchain action metadata with the SDK.
   </Card>
 </CardGroup>

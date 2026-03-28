@@ -1,10 +1,10 @@
 ---
 title: "sherry-sdk"
-description: "TypeScript SDK for building mini-app metadata — define actions, validate schemas, and create triggers for social embedding"
+description: "TypeScript SDK for building blockchain action metadata — define actions, validate schemas, and create triggers for social embedding"
 sidebarTitle: "sherry-sdk"
 ---
 
-The sherry-sdk (`@sherrylinks/sdk`) is the TypeScript library for building mini-app metadata. It defines the action schema, validates metadata before submission, and provides template helpers for common parameter types. Use it to create the metadata object that powers a Relayer Trigger.
+The sherry-sdk (`@sherrylinks/sdk`) is the TypeScript library for building blockchain action metadata. It defines the action schema, validates metadata before submission, and provides template helpers for common parameter types. Use it to create the metadata object that powers a Relayer Trigger.
 
 ## Install
 
@@ -26,7 +26,7 @@ pnpm add @sherrylinks/sdk viem
 
 ## Core Concepts
 
-- Mini-app metadata is a typed `Metadata` object with `url`, `icon`, `title`, `description`, and an `actions` array.
+- Blockchain action metadata is a typed `Metadata` object with `url`, `icon`, `title`, `description`, and an `actions` array.
 - Each action in the array is one of: `transfer`, `blockchain`, `http`, `dynamic`, or a nested `flow`.
 - Call `createMetadata(metadata)` to validate and process the metadata. It throws if the input is invalid.
 - Call `validateMetadata(metadata)` for non-throwing validation that returns a detailed result object with an `errors` array.
@@ -156,7 +156,7 @@ const tokenParam = createParameter(PARAM_TEMPLATES.TOKEN_SELECT, {
 
 ## Debug Your Trigger
 
-Use the [Sherry Debugger](https://app.sherry.social/debugger) to test and preview mini-app metadata before embedding. Paste your metadata JSON or URL and see the rendered Trigger in real time.
+Use the [Sherry Debugger](https://app.sherry.social/debugger) to test and preview blockchain action metadata before embedding. Paste your metadata JSON or URL and see the rendered Trigger in real time.
 
 ## Next Steps
 
@@ -165,6 +165,6 @@ Use the [Sherry Debugger](https://app.sherry.social/debugger) to test and previe
     Embed the Trigger component in your app.
   </Card>
   <Card title="Action Kit" icon="bolt" href="/action/overview">
-    Register and publish mini-apps via the Relayer API.
+    Register and publish blockchain actions via the Relayer API.
   </Card>
 </CardGroup>

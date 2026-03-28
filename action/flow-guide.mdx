@@ -1,10 +1,10 @@
 ---
 title: "Action Flow Guide"
-description: "Build and deploy an on-chain mini-app — from token selection to directory listing and rewards tracking"
+description: "Build and deploy an on-chain blockchain action — from token selection to directory listing and rewards tracking"
 sidebarTitle: "Flow Guide"
 ---
 
-This guide walks through creating a Swap mini-app: selecting tokens, generating builder metadata, registering the mini-app, and verifying it appears in the directory.
+This guide walks through creating a Swap blockchain action: selecting tokens, generating builder metadata, registering the blockchain action, and verifying it appears in the directory.
 
 ## Prerequisites
 
@@ -51,7 +51,7 @@ export RELAYER_BASE_URL="https://relayer-api.onrender.com"  # or https://api.rel
   </Step>
 
   <Step title="Generate swap metadata with the builder">
-    Call the Swap builder to generate structured action metadata. This defines what the mini-app does when a user interacts with it.
+    Call the Swap builder to generate structured action metadata. This defines what the blockchain action does when a user interacts with it.
 
     <CodeGroup>
 
@@ -93,8 +93,8 @@ export RELAYER_BASE_URL="https://relayer-api.onrender.com"  # or https://api.rel
     The builder returns a metadata object that fully describes the swap action — token addresses, protocol routing, chain configuration, and UI display hints.
   </Step>
 
-  <Step title="Create the mini-app in the registry">
-    Register the mini-app using the metadata from the builder. This creates your operator's record and publishes the app to the directory.
+  <Step title="Create the blockchain action in the registry">
+    Register the blockchain action using the metadata from the builder. This creates your operator's record and publishes the app to the directory.
 
     <CodeGroup>
 
@@ -125,10 +125,10 @@ export RELAYER_BASE_URL="https://relayer-api.onrender.com"  # or https://api.rel
       }),
     });
     const { data } = await response.json();
-    // data.id — your mini-app ID
+    // data.id — your blockchain action ID
     // data.status — "active"
     const miniAppId = data.id;
-    console.log(`Mini-app created: ${miniAppId}`);
+    console.log(`Blockchain action created: ${miniAppId}`);
     ```
 
     </CodeGroup>
@@ -138,8 +138,8 @@ export RELAYER_BASE_URL="https://relayer-api.onrender.com"  # or https://api.rel
     </Tip>
   </Step>
 
-  <Step title="Verify the mini-app appears in the directory">
-    Confirm your mini-app is discoverable by querying the public directory.
+  <Step title="Verify the blockchain action appears in the directory">
+    Confirm your blockchain action is discoverable by querying the public directory.
 
     <CodeGroup>
 
@@ -151,16 +151,16 @@ export RELAYER_BASE_URL="https://relayer-api.onrender.com"  # or https://api.rel
     const response = await fetch(`${RELAYER_BASE_URL}/v1/action/directory`);
     const { data } = await response.json();
     const myApp = data.find((app: any) => app.id === miniAppId);
-    console.log(`Mini-app in directory: ${!!myApp}`);
+    console.log(`Blockchain action in directory: ${!!myApp}`);
     ```
 
     </CodeGroup>
 
-    The directory is public — no API key needed for reads. Embedders query this endpoint to discover available actions for their social platform.
+    The directory is public — no API key needed for reads. Embedders query this endpoint to discover available actions for their platform.
   </Step>
 
   <Step title="Index an on-chain execution event">
-    When a user executes your mini-app on-chain, report the event to Relayer. This powers rewards tracking and KOL analytics.
+    When a user executes your blockchain action on-chain, report the event to Relayer. This powers rewards tracking and KOL analytics.
 
     <CodeGroup>
 
@@ -202,7 +202,7 @@ export RELAYER_BASE_URL="https://relayer-api.onrender.com"  # or https://api.rel
   </Step>
 
   <Step title="Query KOL rewards metrics">
-    Check on-chain performance metrics for a KOL address — volume, executions, and referred mini-apps.
+    Check on-chain performance metrics for a KOL address — volume, executions, and referred blockchain actions.
 
     <CodeGroup>
 
@@ -231,9 +231,9 @@ export RELAYER_BASE_URL="https://relayer-api.onrender.com"  # or https://api.rel
   </Step>
 </Steps>
 
-## Updating a Mini-App
+## Updating a Blockchain Action
 
-Update metadata or display info for an existing mini-app:
+Update metadata or display info for an existing blockchain action:
 
 ```typescript Node.js
 const response = await fetch(`${RELAYER_BASE_URL}/v1/action/${miniAppId}`, {
@@ -251,7 +251,7 @@ const response = await fetch(`${RELAYER_BASE_URL}/v1/action/${miniAppId}`, {
 
 ## Retrieving Raw Metadata
 
-Get the raw metadata object for any mini-app by ID:
+Get the raw metadata object for any blockchain action by ID:
 
 ```bash cURL
 curl "$RELAYER_BASE_URL/v1/action/$MINI_APP_ID/metadata" \

@@ -9,7 +9,7 @@ Reference for domain terms used throughout the Relayer documentation.
 ## A
 
 **Action Kit**
-The Relayer Kit that handles mini-app registration, transaction builders, token management, and on-chain event indexing. Accessed via `/v1/action/*`.
+The Relayer Kit that handles blockchain action registration, transaction builders, token management, and on-chain event indexing. Accessed via `/v1/action/*`.
 
 **API Key**
 A secret credential that identifies an operator and authorizes requests to the Relayer API. Format: `sk_client_key_v1_...`. Passed in the `Authorization: ApiKey <key>` header.
@@ -37,8 +37,8 @@ A domain-scoped module in the Relayer API. Each Kit covers a distinct area of fu
 
 ## M
 
-**Mini-App**
-A composable on-chain transaction or workflow registered in the Action Kit. Mini-apps define a set of parameters and actions that can be triggered by users through the Widget Kit or directly via the API. Registered via `/v1/action/directory`.
+**Blockchain Action**
+A composable on-chain transaction or workflow registered in the Action Kit. Blockchain actions define a set of parameters and actions that can be triggered by users through the Widget Kit or directly via the API. Registered via `/v1/action/directory`.
 
 ## O
 

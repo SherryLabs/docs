@@ -4,10 +4,10 @@ description: "Embed the Trigger component and configure theming in Next.js and R
 sidebarTitle: "Integration Guide"
 ---
 
-This guide shows how to render a Trigger component from a mini-app URL, connect it to a wagmi wallet adapter, and apply light/dark theming.
+This guide shows how to render a Trigger component from a blockchain action URL, connect it to a wagmi wallet adapter, and apply light/dark theming.
 
 <Info>
-**Prerequisites:** wagmi providers configured per [Installation](/widget/installation). A mini-app URL — get one from the [Relayer directory](/action/flow-guide) or use the example URL in the snippets below.
+**Prerequisites:** wagmi providers configured per [Installation](/widget/installation). A blockchain action URL — get one from the [Relayer directory](/action/flow-guide) or use the example URL in the snippets below.
 </Info>
 
 ## Render a Trigger
@@ -51,7 +51,7 @@ The component renders `null` during SSR, so there are no hydration mismatch issu
 
 <Step title="Verify">
 
-Start your dev server and navigate to the page. The Trigger card should appear showing the mini-app title, description, and action buttons.
+Start your dev server and navigate to the page. The Trigger card should appear showing the blockchain action title, description, and action buttons.
 
 If you see a loading skeleton briefly, that is expected — the component fetches metadata on mount.
 
@@ -64,7 +64,7 @@ If you see a loading skeleton briefly, that is expected — the component fetche
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
 | `adapter` | `SherryAdapter` | Yes | Wallet adapter — use `useWagmiAdapter()` or `createWagmiAdapter(config)` |
-| `url` | `string` | Yes* | URL to fetch mini-app metadata from |
+| `url` | `string` | Yes* | URL to fetch blockchain action metadata from |
 | `metadata` | `ValidatedMetadata` | Yes* | Pass pre-validated metadata instead of `url` |
 | `securityState` | `TriggerSecurityState` | Yes (with `metadata`) | Security context for pre-validated flow |
 | `stylePreset` | `'x' \| undefined` | No | Apply Twitter/X visual preset |
@@ -123,13 +123,13 @@ Pass `stylePreset="x"` to apply the Twitter/X visual preset — rounded card, co
 
 ## Platform Observers
 
-The library ships observers for automatic trigger detection on Twitter/X, YouTube, and Twitch. These observers scan the DOM for mini-app URLs and render Trigger components inline. For custom embedding in your own app, use the `Trigger` component directly as shown above. See the [Widget Kit Overview](/widget/overview) for architecture details.
+The library ships observers for automatic trigger detection on Twitter/X, YouTube, and Twitch. These observers scan the DOM for blockchain action URLs and render Trigger components inline. For custom embedding in your own app, use the `Trigger` component directly as shown above. See the [Widget Kit Overview](/widget/overview) for architecture details.
 
 ## Next Steps
 
 <CardGroup cols={2}>
   <Card title="sherry-sdk" icon="code" href="/widget/sdk">
-    Build mini-app metadata to power your Triggers.
+    Build blockchain action metadata to power your Triggers.
   </Card>
   <Card title="Widget Kit Overview" icon="layer-group" href="/widget/overview">
     Package ecosystem and architecture.
