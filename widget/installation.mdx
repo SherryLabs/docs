@@ -1,6 +1,142 @@
 ---
 title: "Installation"
-description: "Install and configure relayer-widgets in your project"
+description: "Install @relayer-fi/widgets and configure wallet providers in your project"
+sidebarTitle: "Installation"
 ---
 
-Content coming in Phase 22.
+Install the widget library and its peer dependencies, then wrap your app with the required providers.
+
+## Install Packages
+
+<CodeGroup>
+
+```bash npm
+npm install @relayer-fi/widgets wagmi viem @tanstack/react-query framer-motion
+```
+
+```bash pnpm
+pnpm add @relayer-fi/widgets wagmi viem @tanstack/react-query framer-motion
+```
+
+```bash yarn
+yarn add @relayer-fi/widgets wagmi viem @tanstack/react-query framer-motion
+```
+
+</CodeGroup>
+
+<Note>
+`@relayer-fi/action-kit` and `@relayer-fi/widgets-core` are peer packages bundled internally — you do not install them separately.
+</Note>
+
+## Configure Wagmi
+
+Create a wagmi config file. This example uses `mainnet` with the browser injected connector:
+
+```typescript src/wagmi.ts
+import { createConfig, http } from 'wagmi';
+import { mainnet } from 'wagmi/chains';
+import { injected } from 'wagmi/connectors';
+
+export const wagmiConfig = createConfig({
+  chains: [mainnet],
+  connectors: [injected()],
+  transports: {
+    [mainnet.id]: http(),
+  },
+});
+```
+
+Add more chains and connectors (WalletConnect, Coinbase Wallet) as needed. See the [wagmi docs](https://wagmi.sh/react/config) for the full configuration API.
+
+## Wrap Your App
+
+wagmi v2 requires `WagmiProvider` and `QueryClientProvider` at the root of your component tree.
+
+<Tabs>
+  <Tab title="Next.js App Router">
+    Create a client component for providers:
+
+    ```typescript src/app/providers.tsx
+    'use client';
+
+    import { WagmiProvider } from 'wagmi';
+    import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+    import { wagmiConfig } from '@/wagmi';
+
+    const queryClient = new QueryClient();
+
+    export function Providers({ children }: { children: React.ReactNode }) {
+      return (
+        <WagmiProvider config={wagmiConfig}>
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        </WagmiProvider>
+      );
+    }
+    ```
+
+    Then use `<Providers>` in your root layout:
+
+    ```typescript src/app/layout.tsx
+    import { Providers } from './providers';
+
+    export default function RootLayout({ children }: { children: React.ReactNode }) {
+      return (
+        <html lang="en">
+          <body>
+            <Providers>{children}</Providers>
+          </body>
+        </html>
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="React (Vite / CRA)">
+    Wrap your app entry point:
+
+    ```typescript src/main.tsx
+    import React from 'react';
+    import ReactDOM from 'react-dom/client';
+    import { WagmiProvider } from 'wagmi';
+    import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+    import { wagmiConfig } from './wagmi';
+    import App from './App';
+
+    const queryClient = new QueryClient();
+
+    ReactDOM.createRoot(document.getElementById('root')!).render(
+      <WagmiProvider config={wagmiConfig}>
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      </WagmiProvider>,
+    );
+    ```
+  </Tab>
+</Tabs>
+
+## Import CSS
+
+Widget components require the bundled stylesheet. Import it once in your entry point:
+
+```typescript
+import '@relayer-fi/widgets/index.css';
+```
+
+For Next.js, add this import to `app/layout.tsx` or `pages/_app.tsx`.
+
+## Verify Installation
+
+Once providers are configured and the CSS is imported, you can render a `<Trigger>` component. See the [Integration Guide](/widget/integration) for a full working example.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Integration Guide" icon="plug" href="/widget/integration">
+    Embed and theme your first widget.
+  </Card>
+  <Card title="Widget Kit Overview" icon="layer-group" href="/widget/overview">
+    Understand the package ecosystem.
+  </Card>
+</CardGroup>
