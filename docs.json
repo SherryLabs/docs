@@ -1,5 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
+  "llms": true,
   "theme": "mint",
   "name": "Relayer",
   "colors": {
