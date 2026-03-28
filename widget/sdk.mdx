@@ -1,0 +1,170 @@
+---
+title: "sherry-sdk"
+description: "TypeScript SDK for building mini-app metadata — define actions, validate schemas, and create triggers for social embedding"
+sidebarTitle: "sherry-sdk"
+---
+
+The sherry-sdk (`@sherrylinks/sdk`) is the TypeScript library for building mini-app metadata. It defines the action schema, validates metadata before submission, and provides template helpers for common parameter types. Use it to create the metadata object that powers a Relayer Trigger.
+
+## Install
+
+<CodeGroup>
+
+```bash npm
+npm install @sherrylinks/sdk viem
+```
+
+```bash pnpm
+pnpm add @sherrylinks/sdk viem
+```
+
+</CodeGroup>
+
+<Note>
+`viem` is a required peer dependency.
+</Note>
+
+## Core Concepts
+
+- Mini-app metadata is a typed `Metadata` object with `url`, `icon`, `title`, `description`, and an `actions` array.
+- Each action in the array is one of: `transfer`, `blockchain`, `http`, `dynamic`, or a nested `flow`.
+- Call `createMetadata(metadata)` to validate and process the metadata. It throws if the input is invalid.
+- Call `validateMetadata(metadata)` for non-throwing validation that returns a detailed result object with an `errors` array.
+
+## Action Types
+
+| Type | Purpose | Key Fields |
+|------|---------|------------|
+| `transfer` | Send native tokens to an address | `to`, `amount`, `chains` |
+| `blockchain` | Call a smart contract function | `address`, `abi`, `functionName`, `params` |
+| `http` | POST to a REST endpoint for server-side logic | `path`, `params` |
+| `dynamic` | Advanced server-side processing with external services | `url`, `params` |
+| `flow` | Multi-step interactive experience with conditional branching | `steps`, `decisions` |
+
+## Quick Start — Transfer Action
+
+```typescript
+import { createMetadata, type Metadata } from '@sherrylinks/sdk';
+
+const metadata: Metadata = {
+  url: 'https://myapp.example',
+  icon: 'https://example.com/icon.png',
+  title: 'Send AVAX',
+  description: 'Transfer 0.1 AVAX instantly',
+  actions: [
+    {
+      type: 'transfer',
+      label: 'Send 0.1 AVAX',
+      description: 'Transfer 0.1 AVAX to recipient',
+      to: '0x1234567890123456789012345678901234567890',
+      amount: 0.1,
+      chains: { source: 43114 }, // Avalanche C-Chain
+    },
+  ],
+};
+
+const validatedMetadata = createMetadata(metadata);
+```
+
+## Quick Start — Blockchain Action
+
+```typescript
+import { createMetadata, type Metadata } from '@sherrylinks/sdk';
+
+const metadata: Metadata = {
+  url: 'https://myapp.example',
+  icon: 'https://example.com/icon.png',
+  title: 'Approve USDC',
+  description: 'Approve contract to spend USDC',
+  actions: [
+    {
+      type: 'blockchain',
+      label: 'Approve',
+      address: '0xA0b86a33E6417C8D7648D5b1D6fF0F6dB6c15b2a',
+      abi: [/* contract ABI */],
+      functionName: 'approve',
+      chains: { source: 1 }, // Ethereum Mainnet
+      params: [
+        { name: 'spender', type: 'address', value: '0xSpenderAddress', fixed: true },
+        { name: 'amount', type: 'number', label: 'Amount', required: true },
+      ],
+    },
+  ],
+};
+
+const validatedMetadata = createMetadata(metadata);
+```
+
+## Validation
+
+Use `validateMetadata` for non-throwing validation with detailed error reporting:
+
+```typescript
+import { validateMetadata } from '@sherrylinks/sdk';
+
+const result = validateMetadata(metadata);
+
+if (result.isValid) {
+  console.log('Valid:', result.type);
+} else {
+  console.error('Errors:', result.errors);
+}
+```
+
+## Parameter Templates
+
+`PARAM_TEMPLATES` provides predefined parameter shapes (email, token select, etc.) so you do not have to hand-craft common parameter structures:
+
+```typescript
+import { createParameter, PARAM_TEMPLATES } from '@sherrylinks/sdk';
+
+const tokenParam = createParameter(PARAM_TEMPLATES.TOKEN_SELECT, {
+  name: 'token',
+  label: 'Select Token',
+  options: [
+    { label: 'USDC', value: 'usdc' },
+    { label: 'DAI', value: 'dai' },
+  ],
+});
+```
+
+## Supported Chains
+
+| Chain | Chain ID |
+|-------|----------|
+| Ethereum Mainnet | `1` |
+| Ethereum Sepolia | `11155111` |
+| Avalanche C-Chain | `43114` |
+| Avalanche Fuji | `43113` |
+| Celo Mainnet | `42220` |
+| Base Mainnet | `8453` |
+| Base Sepolia | `84532` |
+| Mantle Mainnet | `5000` |
+
+## API Reference
+
+| Export | Type | Purpose |
+|--------|------|---------|
+| `createMetadata(metadata)` | function | Validate and process metadata; throws on error |
+| `validateMetadata(input)` | function | Non-throwing validation with `errors` array |
+| `isBlockchainActionMetadata(action)` | type guard | Narrow action type to `blockchain` |
+| `isTransferAction(action)` | type guard | Narrow action type to `transfer` |
+| `isHttpAction(action)` | type guard | Narrow action type to `http` |
+| `isActionFlow(obj)` | type guard | Narrow to nested `flow` |
+| `PARAM_TEMPLATES` | constant | Library of predefined parameter shapes |
+| `createParameter(template, overrides)` | function | Create a parameter from a template |
+
+## Debug Your Trigger
+
+Use the [Sherry Debugger](https://app.sherry.social/debugger) to test and preview mini-app metadata before embedding. Paste your metadata JSON or URL and see the rendered Trigger in real time.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Integration Guide" icon="plug" href="/widget/integration">
+    Embed the Trigger component in your app.
+  </Card>
+  <Card title="Action Kit" icon="bolt" href="/action/overview">
+    Register and publish mini-apps via the Relayer API.
+  </Card>
+</CardGroup>

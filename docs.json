@@ -92,7 +92,8 @@
             "pages": [
               "widget/overview",
               "widget/installation",
-              "widget/integration"
+              "widget/integration",
+              "widget/sdk"
             ]
           }
         ]
