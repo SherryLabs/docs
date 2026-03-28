@@ -1,6 +1,360 @@
 ---
 title: "Action Endpoints"
-description: "Action builder and token management API reference"
+description: "Mini-app registry, action builders, directory, tokens, indexing, and rewards reference"
+sidebarTitle: "Endpoints"
 ---
 
-Content coming in Phase 22.
+Reference for all Action Kit endpoints. For interactive schemas and try-it functionality, see the [API Reference](/api-reference/introduction).
+
+## Mini-App Registry
+
+### List Mini-Apps
+
+Returns all mini-apps registered by your operator.
+
+```
+GET /v1/action
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "app_abc123",
+      "name": "MATIC to USDC Swap",
+      "type": "swap",
+      "status": "active",
+      "createdAt": "2026-03-28T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### Get Mini-App
+
+Retrieve a single mini-app by ID.
+
+```
+GET /v1/action/:id
+```
+
+---
+
+### Create Mini-App
+
+Register a new mini-app with action metadata.
+
+```
+POST /v1/action
+```
+
+**Request body:**
+```json
+{
+  "name": "MATIC to USDC Swap",
+  "description": "Swap MATIC for USDC on Polygon via Uniswap",
+  "type": "swap",
+  "metadata": {}
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Display name in the directory |
+| `description` | string | Short description shown to embedders |
+| `type` | string | Action type: `swap`, `onboarding` |
+| `metadata` | object | Builder-generated action definition |
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "app_abc123",
+    "name": "MATIC to USDC Swap",
+    "type": "swap",
+    "status": "active"
+  }
+}
+```
+
+---
+
+### Update Mini-App
+
+Update display info or regenerate metadata for an existing mini-app.
+
+```
+PATCH /v1/action/:id
+```
+
+---
+
+### Get Raw Metadata
+
+Retrieve the raw metadata JSON stored for a mini-app.
+
+```
+GET /v1/action/:miniAppId/metadata
+```
+
+Useful for debugging or re-using metadata across related mini-apps.
+
+---
+
+### Register Fees Withdrawal
+
+Record a fees withdrawal event for a mini-app.
+
+```
+PATCH /v1/action/:id/fees-withdrawal
+```
+
+---
+
+## Action Builders
+
+Builders generate structured metadata for each action type. Use the output as the `metadata` field when creating or updating a mini-app.
+
+### Generate Swap Metadata
+
+Build metadata for a token swap on a single chain.
+
+```
+POST /v1/action/builders/swap
+```
+
+**Request body:**
+```json
+{
+  "chain": "polygon",
+  "protocol": "uniswap",
+  "fromToken": "0xTokenAddressA",
+  "toToken": "0xTokenAddressB",
+  "amount": "10"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `chain` | string | Blockchain network (e.g., `polygon`, `base`) |
+| `protocol` | string | DeFi protocol (e.g., `uniswap`) |
+| `fromToken` | string | Source token contract address |
+| `toToken` | string | Destination token contract address |
+| `amount` | string | Default swap amount |
+
+---
+
+### Generate Staking Metadata
+
+Build metadata for a token staking action.
+
+```
+POST /v1/action/builders/staking
+```
+
+---
+
+### Generate Crosschain Transfer Metadata
+
+Build metadata for sending tokens across chains.
+
+```
+POST /v1/action/builders/crosschain-transfer
+```
+
+Also accepts `POST /v1/action/builders/crosschain_transfer` (legacy alias).
+
+---
+
+### Generate Native Token Transfer Metadata
+
+Build metadata for sending native tokens (ETH, MATIC, etc.).
+
+```
+POST /v1/action/builders/transfer-native
+```
+
+---
+
+### Generate Crosschain Bridge Metadata
+
+Build metadata for bridging assets between networks.
+
+```
+POST /v1/action/builders/crosschain-bridge
+```
+
+---
+
+## Directory
+
+### Get Directory
+
+Retrieve the public listing of all published mini-apps.
+
+```
+GET /v1/action/directory
+```
+
+No authentication required for directory reads. This is the endpoint embedders query to discover actions available on their platform.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "app_abc123",
+      "name": "MATIC to USDC Swap",
+      "type": "swap",
+      "description": "Swap MATIC for USDC on Polygon via Uniswap",
+      "operator": "acme-operator"
+    }
+  ]
+}
+```
+
+---
+
+## Tokens
+
+### Get Token List
+
+Retrieve the supported token list for a chain and protocol combination. Use this to populate token selectors before calling a builder.
+
+```
+GET /v1/action/tokens/:chain/:protocol
+```
+
+**Path parameters:**
+
+| Parameter | Description |
+|-----------|-------------|
+| `chain` | Blockchain network (e.g., `polygon`, `base`, `arbitrum`) |
+| `protocol` | DeFi protocol (e.g., `uniswap`, `sushiswap`) |
+
+**Example:**
+```
+GET /v1/action/tokens/polygon/uniswap
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "symbol": "USDC",
+      "address": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+      "decimals": 6,
+      "logoURI": "https://..."
+    }
+  ]
+}
+```
+
+---
+
+## Indexing
+
+### Index Events
+
+Report on-chain execution events for rewards and analytics tracking. Call this after a user successfully executes a mini-app transaction.
+
+```
+POST /v1/action/indexing/events
+```
+
+**Request body:**
+```json
+{
+  "miniAppId": "app_abc123",
+  "txHash": "0xTransactionHashHere",
+  "userAddress": "0xUserWalletAddress",
+  "referrerAddress": "0xKOLWalletAddress",
+  "chainId": 137
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `miniAppId` | string | Yes | ID of the executed mini-app |
+| `txHash` | string | Yes | On-chain transaction hash |
+| `userAddress` | string | Yes | Wallet address that executed the action |
+| `referrerAddress` | string | No | KOL wallet address for rewards attribution |
+| `chainId` | number | Yes | Chain ID where the transaction occurred |
+
+---
+
+## Rewards
+
+### Get Swap Information
+
+Get swap details for rewards calculation purposes.
+
+```
+POST /v1/action/rewards/swap
+```
+
+---
+
+### Get Rewards Token List
+
+Retrieve the token list for a specific protocol and chainId for rewards configuration.
+
+```
+GET /v1/action/rewards/get-token-list?protocol={protocol}&chainId={chainId}
+```
+
+---
+
+### Get KOL Metrics
+
+Retrieve on-chain performance metrics for a KOL (Key Opinion Leader) by wallet address.
+
+```
+GET /v1/action/rewards/metrics?address={address}
+```
+
+**Query parameters:**
+
+| Parameter | Description |
+|-----------|-------------|
+| `address` | KOL wallet address |
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "address": "0xKOLWalletAddress",
+    "totalExecutions": 142,
+    "totalVolume": "48500.00",
+    "currency": "USD",
+    "referredMiniApps": 3
+  }
+}
+```
+
+---
+
+### Get KOL Mini-Apps with On-Chain Metrics
+
+Retrieve a KOL's mini-apps alongside their aggregated on-chain execution metrics.
+
+```
+GET /v1/action/rewards/mini-apps-with-onchain-metrics?address={address}
+```
+
+Returns each mini-app the KOL has shared with execution counts and volume breakdown.
+
+---
+
+## Full API Reference
+
+All endpoints include interactive schemas and a try-it playground in the [API Reference](/api-reference/introduction). Action Kit endpoints are grouped under the **Action** tags (Registry, Builders, Directory, Tokens, Indexing, Rewards).
