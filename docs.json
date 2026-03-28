@@ -151,5 +151,18 @@
       "x": "https://x.com/sherrylabs",
       "github": "https://github.com/SherryLabs"
     }
-  }
+  },
+  "redirects": [
+    { "source": "/quickstart", "destination": "/get-started/quickstart" },
+    { "source": "/development", "destination": "/get-started/overview" },
+    { "source": "/essentials/settings", "destination": "/get-started/overview" },
+    { "source": "/essentials/navigation", "destination": "/get-started/overview" },
+    { "source": "/essentials/markdown", "destination": "/get-started/overview" },
+    { "source": "/essentials/code", "destination": "/get-started/overview" },
+    { "source": "/essentials/images", "destination": "/get-started/overview" },
+    { "source": "/essentials/reusable-snippets", "destination": "/get-started/overview" },
+    { "source": "/ai-tools/claude-code", "destination": "/get-started/overview" },
+    { "source": "/ai-tools/cursor", "destination": "/get-started/overview" },
+    { "source": "/ai-tools/windsurf", "destination": "/get-started/overview" }
+  ]
 }
