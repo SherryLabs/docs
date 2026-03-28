@@ -1,6 +1,137 @@
 ---
 title: "Integration Guide"
-description: "Embed and theme widgets in Next.js and React apps"
+description: "Embed the Trigger component and configure theming in Next.js and React"
+sidebarTitle: "Integration Guide"
 ---
 
-Content coming in Phase 22.
+This guide shows how to render a Trigger component from a mini-app URL, connect it to a wagmi wallet adapter, and apply light/dark theming.
+
+<Info>
+**Prerequisites:** wagmi providers configured per [Installation](/widget/installation). A mini-app URL — get one from the [Relayer directory](/action/flow-guide) or use the example URL in the snippets below.
+</Info>
+
+## Render a Trigger
+
+<Steps>
+
+<Step title="Create the adapter">
+
+Use the `useWagmiAdapter` hook (recommended) or `createWagmiAdapter` for one-off usage outside React components:
+
+```typescript src/components/MyWidget.tsx
+'use client';
+
+import { useWagmiAdapter, Trigger } from '@relayer-fi/widgets';
+
+export function MyWidget() {
+  const adapter = useWagmiAdapter();
+
+  return (
+    <Trigger
+      adapter={adapter}
+      url="https://api.relayer.fi/v1/action/example-swap"
+    />
+  );
+}
+```
+
+</Step>
+
+<Step title="Place in your layout">
+
+Add `<MyWidget />` wherever you want the widget to appear.
+
+For Next.js App Router, the `'use client'` directive is already included above — `Trigger` is a client component.
+
+<Tip>
+The component renders `null` during SSR, so there are no hydration mismatch issues.
+</Tip>
+
+</Step>
+
+<Step title="Verify">
+
+Start your dev server and navigate to the page. The Trigger card should appear showing the mini-app title, description, and action buttons.
+
+If you see a loading skeleton briefly, that is expected — the component fetches metadata on mount.
+
+</Step>
+
+</Steps>
+
+## TriggerProps Reference
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `adapter` | `SherryAdapter` | Yes | Wallet adapter — use `useWagmiAdapter()` or `createWagmiAdapter(config)` |
+| `url` | `string` | Yes* | URL to fetch mini-app metadata from |
+| `metadata` | `ValidatedMetadata` | Yes* | Pass pre-validated metadata instead of `url` |
+| `securityState` | `TriggerSecurityState` | Yes (with `metadata`) | Security context for pre-validated flow |
+| `stylePreset` | `'x' \| undefined` | No | Apply Twitter/X visual preset |
+| `enableAnalytics` | `boolean` | No | Track interaction events (default: `true`) |
+| `player` | `boolean` | No | Enable player mode for embedded contexts |
+| `className` | `string` | No | Additional CSS class on the root element |
+| `startDisabled` | `boolean` | No | Render widget in disabled state |
+
+<Note>
+Either `url` or `metadata` + `securityState` must be provided, not both.
+</Note>
+
+## Theming
+
+Widgets read `data-x-theme="dark|light"` from the document root to determine the active theme.
+
+### Automatic Theme Detection (Twitter/X)
+
+Call `applyXTheme()` once on mount to read the Twitter/X night mode cookie and set the theme attribute automatically:
+
+```typescript
+import { applyXTheme } from '@relayer-fi/widgets';
+
+// Call once on mount
+applyXTheme();
+```
+
+### React Hook
+
+Use the `useTheme` hook to read the current theme in your components:
+
+```typescript
+import { useTheme } from '@relayer-fi/widgets';
+
+function MyComponent() {
+  const theme = useTheme(); // 'dark' | 'light'
+  return <div data-theme={theme}><Trigger ... /></div>;
+}
+```
+
+### Manual Override
+
+Set the attribute directly on `document.documentElement` for custom toggle UIs:
+
+```typescript
+document.documentElement.setAttribute('data-x-theme', 'dark');
+```
+
+## Twitter/X stylePreset
+
+Pass `stylePreset="x"` to apply the Twitter/X visual preset — rounded card, correct font sizing, consistent with the embedded trigger appearance on social platforms:
+
+```tsx
+<Trigger adapter={adapter} url={url} stylePreset="x" />
+```
+
+## Platform Observers
+
+The library ships observers for automatic trigger detection on Twitter/X, YouTube, and Twitch. These observers scan the DOM for mini-app URLs and render Trigger components inline. For custom embedding in your own app, use the `Trigger` component directly as shown above. See the [Widget Kit Overview](/widget/overview) for architecture details.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="sherry-sdk" icon="code" href="/widget/sdk">
+    Build mini-app metadata to power your Triggers.
+  </Card>
+  <Card title="Widget Kit Overview" icon="layer-group" href="/widget/overview">
+    Package ecosystem and architecture.
+  </Card>
+</CardGroup>
