@@ -1,0 +1,148 @@
+---
+title: "Error Reference"
+description: "HTTP error codes, error response format, and business errors"
+sidebarTitle: "Error Reference"
+---
+
+All Relayer API errors follow a consistent response envelope. This reference covers the error format, HTTP status codes, and common business errors.
+
+## Error Response Format
+
+Every error response uses the same envelope as successful responses, with `success: false`:
+
+```json
+{
+  "success": false,
+  "message": "API key not found",
+  "statusCode": 401,
+  "timestamp": "2026-03-28T12:00:00.000Z",
+  "path": "/v1/exchange/quotes"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `boolean` | Always `false` for errors |
+| `message` | `string` | Human-readable error description |
+| `statusCode` | `number` | HTTP status code (mirrors the response status) |
+| `timestamp` | `string` | ISO 8601 timestamp of when the error occurred |
+| `path` | `string` | The request path that returned the error |
+
+## HTTP Status Codes
+
+### 4xx Client Errors
+
+| Status | Name | Meaning |
+|--------|------|---------|
+| `400` | Bad Request | Request body or query parameters are invalid or missing required fields |
+| `401` | Unauthorized | API key is missing, malformed, or expired |
+| `403` | Forbidden | API key is valid but lacks permission for this resource or operation |
+| `404` | Not Found | The requested resource does not exist (wrong ID, deleted, or wrong path) |
+| `409` | Conflict | The operation conflicts with existing state (e.g., duplicate resource) |
+| `422` | Unprocessable Entity | Request is well-formed but fails business validation (e.g., insufficient balance) |
+| `429` | Too Many Requests | Rate limit exceeded — back off and retry |
+
+### 5xx Server Errors
+
+| Status | Name | Meaning |
+|--------|------|---------|
+| `500` | Internal Server Error | Unexpected server-side error — contact support if persistent |
+| `502` | Bad Gateway | Upstream service (Turnkey, Bridge, etc.) returned an error |
+| `503` | Service Unavailable | API is temporarily unavailable — retry with exponential backoff |
+
+## Authentication Errors
+
+<Tabs>
+  <Tab title="Missing Key">
+```json
+{
+  "success": false,
+  "message": "Authorization header is missing",
+  "statusCode": 401,
+  "timestamp": "2026-03-28T12:00:00.000Z",
+  "path": "/v1/exchange/quotes"
+}
+```
+
+**Fix:** Add the `Authorization: ApiKey sk_client_key_v1_...` header to your request.
+  </Tab>
+  <Tab title="Invalid Key">
+```json
+{
+  "success": false,
+  "message": "API key not found",
+  "statusCode": 404,
+  "timestamp": "2026-03-28T12:00:00.000Z",
+  "path": "/v1/exchange/quotes"
+}
+```
+
+**Fix:** Verify your API key is correct and was not revoked. Generate a new key from the dashboard if needed.
+  </Tab>
+  <Tab title="Insufficient Permissions">
+```json
+{
+  "success": false,
+  "message": "Insufficient permissions for this resource",
+  "statusCode": 403,
+  "timestamp": "2026-03-28T12:00:00.000Z",
+  "path": "/v1/signing/wallets"
+}
+```
+
+**Fix:** Your API key's role does not have access to this Kit or endpoint. Contact your account admin to update module permissions.
+  </Tab>
+</Tabs>
+
+## Validation Errors
+
+`400` errors include details about what failed:
+
+```json
+{
+  "success": false,
+  "message": "Validation failed: amount must be a positive number",
+  "statusCode": 400,
+  "timestamp": "2026-03-28T12:00:00.000Z",
+  "path": "/v1/exchange/quotes"
+}
+```
+
+Check the `message` field for the specific field and constraint that failed.
+
+## Business Errors
+
+Common business-logic errors returned as `422 Unprocessable Entity`:
+
+| Message | Kit | Cause |
+|---------|-----|-------|
+| `Insufficient balance for settlement` | Exchange | Escrow wallet does not have enough funds to complete the OTC trade |
+| `Quote has expired` | Exchange | The quote's validity window has passed — request a new quote |
+| `Wallet already exists for this operator` | Signing | Attempting to create a duplicate wallet |
+| `Recipient not found` | Payout | The recipient ID does not exist for this operator |
+| `Payout rail not configured` | Payout | The operator has not set up a Bridge payout rail — complete onboarding first |
+| `Action not registered` | Action | The mini-app action ID does not exist in the directory |
+
+## Error Handling Patterns
+
+<Steps>
+  <Step title="Check the status code first">
+    `4xx` errors are your responsibility — inspect the `message` field and fix the request. `5xx` errors are server-side — retry with backoff.
+  </Step>
+  <Step title="Read the message field">
+    The `message` field is human-readable and explains the specific problem. Log it for debugging and surface an appropriate message to your users.
+  </Step>
+  <Step title="Handle 401 and 403 separately">
+    `401` means unauthenticated (missing or invalid key). `403` means authenticated but not authorized (permissions issue). These require different resolution paths.
+  </Step>
+  <Step title="Retry 429 and 5xx with backoff">
+    Rate limit (`429`) and server errors (`502`, `503`) are transient. Retry with exponential backoff: 1s, 2s, 4s, 8s. Give up after 3-4 attempts and surface the error.
+  </Step>
+</Steps>
+
+## Getting Help
+
+If you encounter a persistent `500` error or unexpected behavior, contact support at [support@relayer.fi](mailto:support@relayer.fi) with:
+- The full error response body
+- The request path and method
+- Your API key prefix (first 20 characters only — never share the full key)

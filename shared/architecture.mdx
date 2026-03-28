@@ -1,0 +1,95 @@
+---
+title: "Architecture Overview"
+description: "How Relayer Kits relate to each other and to external infrastructure"
+sidebarTitle: "Architecture"
+---
+
+Relayer is organized into Kits. Each Kit covers a distinct domain and exposes a set of REST endpoints under a versioned prefix. This page shows how the Kits relate to each other and to the external infrastructure they depend on.
+
+## Kit Structure
+
+```mermaid
+graph TB
+    subgraph "Your Application"
+        APP[Operator App / Dashboard]
+    end
+
+    subgraph "Relayer API /v1"
+        EX[Exchange Kit<br/>/v1/exchange/*]
+        SI[Signing Kit<br/>/v1/signing/*]
+        PA[Payout Kit<br/>/v1/payout/*]
+        AC[Action Kit<br/>/v1/action/*]
+        WI[Widget Kit<br/>React components]
+    end
+
+    subgraph "External Infrastructure"
+        TK[Turnkey<br/>Key Management]
+        BR[Bridge<br/>Fiat Rails]
+        BC[Blockchain<br/>EVM Networks]
+        UN[Uniswap<br/>Swap Protocol]
+        AA[Aave<br/>Lending Protocol]
+    end
+
+    APP -->|ApiKey auth| EX
+    APP -->|ApiKey auth| SI
+    APP -->|ApiKey auth| PA
+    APP -->|ApiKey auth| AC
+    APP -->|npm install| WI
+
+    EX -->|OTC settlement| BC
+    SI -->|key management| TK
+    SI -->|escrow wallets| BC
+    PA -->|fiat on/off-ramp| BR
+    AC -->|swap execution| UN
+    AC -->|lending execution| AA
+    AC -->|event indexing| BC
+```
+
+## Kit Responsibilities
+
+| Kit | Prefix | What It Does |
+|-----|--------|-------------|
+| **Exchange** | `/v1/exchange` | OTC quotes, spread configuration, client management, settlement |
+| **Signing** | `/v1/signing` | Wallet creation, escrow accounts, transaction signing, key policy |
+| **Payout** | `/v1/payout` | Payout rail setup, recipient management, settlement tracking |
+| **Action** | `/v1/action` | Mini-app registry, transaction builders, token lists, on-chain indexing |
+| **Widget** | npm package | Pre-built React components that wrap Kit API calls |
+
+## Request Flow
+
+Every API request follows the same pattern:
+
+```mermaid
+sequenceDiagram
+    participant App as Your App
+    participant API as Relayer API
+    participant Kit as Kit Module
+    participant Infra as External Service
+
+    App->>API: POST /v1/{kit}/{resource}<br/>Authorization: ApiKey sk_...
+    API->>API: Validate API key + RBAC
+    API->>Kit: Route to Kit module
+    Kit->>Infra: Call external service (if needed)
+    Infra-->>Kit: Response
+    Kit-->>API: Result
+    API-->>App: { success, data, statusCode, ... }
+```
+
+## Authentication Model
+
+All requests authenticate with an operator API key in the `Authorization` header:
+
+```
+Authorization: ApiKey sk_client_key_v1_your_key_here
+```
+
+The API key identifies the operator and determines which Kits and resources are accessible based on the operator's module configuration and team role permissions (v2.0+).
+
+## Environments
+
+| Environment | Base URL | Use |
+|-------------|----------|-----|
+| Sandbox | `https://relayer-api.onrender.com` | Development and testing |
+| Production | `https://api.relayer.fi` | Live operations |
+
+All Kit endpoints and authentication patterns are identical across environments.

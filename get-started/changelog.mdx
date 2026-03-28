@@ -1,0 +1,78 @@
+---
+title: "Changelog"
+description: "Release history for the Relayer API"
+sidebarTitle: "Changelog"
+---
+
+This changelog covers API and platform changes from v1.0 through v2.0. Changes are grouped by milestone. Breaking changes are marked with a warning.
+
+## v2.0 — Routes, Roles, Modules & Permissions
+
+**Released:** 2026-03-25
+
+Role-based access control, dynamic sidebar, and team management. This release introduced operator-scoped permissions and multi-team support.
+
+### Added
+
+- **RBAC guard** — API endpoints are now protected by role-based access control. Requests require an API key with sufficient permissions for the target resource.
+- **Dynamic sidebar** — The dashboard sidebar is built from the operator's active modules and role permissions, not a static list.
+- **Team management** — Operators can invite team members, assign roles (Admin, Manager, Viewer), and control module access per team.
+- **Module permissions** — Each Kit module (Exchange, Signing, Payout, Action) can be enabled or disabled per operator.
+- **Route restructuring** — All API routes are now under `/v1/{kit}/{resource}` with consistent naming across Kits.
+
+### Changed
+
+- Auth guard applied globally — previously some endpoints were unprotected.
+- Exchange spread management moved from `/v1/exchange/spread-config` to `/v1/exchange/spreads`.
+- Signing wallet endpoints moved from `/v1/wallets` to `/v1/signing/wallets`.
+
+---
+
+## v1.2 — Platform Rename
+
+**Released:** 2026-03-25
+
+The platform was renamed from Sherry to Relayer. Repository, package, and API references updated.
+
+### Changed
+
+- `sherry-api` → `relayer-api`
+- `sherry-dashboard` → `relayer-dashboard`
+- Base production URL changed from `https://api.sherry.fi` to `https://api.relayer.fi`
+- npm packages renamed to `@relayer/*` namespace
+
+<Warning>
+  If you were using `https://api.sherry.fi`, update your base URL to `https://api.relayer.fi`. Old URLs are not redirected.
+</Warning>
+
+---
+
+## v1.1 — Cleanup & Module Mapping
+
+**Released:** 2026-03-25
+
+Internal module paths cleaned up. No breaking changes to the external API.
+
+### Changed
+
+- Internal module structure reorganized: `common/` → `api/`, `shared/` → `blockchain/`
+- Action Kit split: GTM (go-to-market) logic separated from core Action Kit
+- Rewards endpoint moved to Action Kit from a standalone module
+
+---
+
+## v1.0 — Kit Architecture
+
+**Released:** 2026-03-21
+
+Initial Kit-based architecture. The Relayer API is organized into purpose-built Kits, each covering a distinct domain.
+
+### Added
+
+- **Exchange Kit** (`/v1/exchange/*`) — OTC exchange operations: quotes, spread management, client onboarding, settlement
+- **Signing Kit** (`/v1/signing/*`) — Wallet creation, escrow accounts, transaction signing via Turnkey
+- **Payout Kit** (`/v1/payout/*`) — Fiat payout rails via Bridge, recipient management, settlement tracking
+- **Action Kit** (`/v1/action/*`) — Mini-app registry, transaction builders, token lists, on-chain event indexing
+- **Widget Kit** — Pre-built React components for embedding Relayer functionality
+- Consistent API response envelope: `{ success, message, data, statusCode, timestamp, path }`
+- API key authentication via `Authorization: ApiKey <key>` header

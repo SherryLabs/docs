@@ -1,0 +1,81 @@
+---
+title: "Glossary"
+description: "Domain terminology for Relayer and crypto B2B infrastructure"
+sidebarTitle: "Glossary"
+---
+
+Reference for domain terms used throughout the Relayer documentation.
+
+## A
+
+**Action Kit**
+The Relayer Kit that handles mini-app registration, transaction builders, token management, and on-chain event indexing. Accessed via `/v1/action/*`.
+
+**API Key**
+A secret credential that identifies an operator and authorizes requests to the Relayer API. Format: `sk_client_key_v1_...`. Passed in the `Authorization: ApiKey <key>` header.
+
+## E
+
+**Escrow**
+A holding arrangement where funds are held by a neutral party (in Relayer's case, a smart contract or Turnkey-managed wallet) until conditions are met. Used in the Signing Kit for secure asset custody before settlement.
+
+**Escrow Wallet**
+A Turnkey-managed wallet used to hold funds temporarily during an OTC transaction or signing flow. Created and managed via the Signing Kit (`/v1/signing/wallets`).
+
+**Exchange Kit**
+The Relayer Kit that handles OTC exchange operations: quote generation, spread configuration, client onboarding, and settlement. Accessed via `/v1/exchange/*`.
+
+## I
+
+**Integrator**
+An operator or developer building a product on top of Relayer's API. Integrators consume one or more Kits depending on their use case.
+
+## K
+
+**Kit**
+A domain-scoped module in the Relayer API. Each Kit covers a distinct area of functionality (Exchange, Signing, Payout, Action, Widget) and exposes its own set of endpoints under a versioned prefix.
+
+## M
+
+**Mini-App**
+A composable on-chain transaction or workflow registered in the Action Kit. Mini-apps define a set of parameters and actions that can be triggered by users through the Widget Kit or directly via the API. Registered via `/v1/action/directory`.
+
+## O
+
+**Operator**
+A business or developer who has an account with Relayer and integrates the API into their product. Operators receive an API key and configure which Kits and modules are active for their account.
+
+**OTC (Over-the-Counter)**
+A method of trading where transactions are negotiated directly between parties rather than on an exchange order book. Relayer's Exchange Kit provides OTC infrastructure for operators offering crypto buy/sell services to their users.
+
+## P
+
+**Payout Kit**
+The Relayer Kit that handles fiat and crypto payouts. Covers payout rail configuration (via Bridge), recipient management, and settlement tracking. Accessed via `/v1/payout/*`.
+
+**Payout Rails**
+The underlying payment network used to move fiat funds. In Relayer, payout rails are configured via Bridge and support bank transfers, ACH, SEPA, and similar methods.
+
+## S
+
+**Settlement**
+The final transfer of funds that completes a transaction. In OTC exchange flows, settlement occurs after a quote is accepted and funds are confirmed. In payout flows, settlement confirms fiat delivery to the recipient.
+
+**Signing Kit**
+The Relayer Kit that handles wallet creation, escrow accounts, and transaction signing using Turnkey's key management infrastructure. Accessed via `/v1/signing/*`.
+
+**Signing Policy**
+A set of rules attached to a Turnkey wallet that controls which transactions can be signed. Policies can restrict by value, destination address, token type, or other conditions. Configured in the Signing Kit.
+
+**Spread**
+The difference between the buy price and the sell price that an operator captures as revenue in an OTC exchange. Configured per operator in the Exchange Kit via `/v1/exchange/spreads`.
+
+## T
+
+**Turnkey**
+The key management infrastructure used by the Signing Kit. Turnkey provides secure, policy-controlled wallet creation and transaction signing without exposing raw private keys.
+
+## W
+
+**Widget Kit**
+Pre-built React components that embed Relayer functionality into a frontend application. Widgets wrap Kit API calls and provide a ready-to-use UI for swap, payout, and action flows. Installed via npm.
