@@ -1,6 +1,300 @@
 ---
 title: "Exchange Endpoints"
-description: "Client, spread, and cash management API reference"
+description: "Client management, spread configuration, cash management, and settlement reference"
+sidebarTitle: "Endpoints"
 ---
 
-Content coming in Phase 20.
+Reference for Exchange Kit configuration endpoints. For interactive schemas and try-it functionality, see the [API Reference](/api-reference/introduction).
+
+## Operator Setup
+
+### Activate Operator
+
+Register your account as an OTC operator. Required before any exchange functionality is available.
+
+```
+POST /v1/exchange/activate
+```
+
+No request body required.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "active",
+    "activatedAt": "2026-03-28T12:00:00.000Z"
+  }
+}
+```
+
+---
+
+### Get Operator Status
+
+Check whether your operator account is activated and which modules are enabled.
+
+```
+GET /v1/exchange/operator/status
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "active",
+    "modules": ["exchange"],
+    "registeredAt": "2026-03-28T12:00:00.000Z"
+  }
+}
+```
+
+---
+
+## Spread Configuration
+
+### Update Spread
+
+Set the buy and sell spread percentages applied to all subsequent quotes. Spread is expressed as a decimal fraction.
+
+```
+PATCH /v1/exchange/operator/spread
+```
+
+**Request body:**
+```json
+{
+  "buySpread": 0.02,
+  "sellSpread": 0.025
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `buySpread` | number | Margin applied when client buys crypto (e.g., `0.02` = 2%) |
+| `sellSpread` | number | Margin applied when client sells crypto |
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "buySpread": 0.02,
+    "sellSpread": 0.025,
+    "updatedAt": "2026-03-28T12:00:00.000Z"
+  }
+}
+```
+
+---
+
+## Quotes
+
+### Get Quote
+
+Request a real-time rate for a currency pair. Includes your configured spread.
+
+```
+GET /v1/exchange/quote
+```
+
+**Query parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `fromCurrency` | string | Yes | Source currency (e.g., `USD`, `ETH`) |
+| `toCurrency` | string | Yes | Target currency (e.g., `ETH`, `USDC`) |
+| `amount` | number | Yes | Amount in `fromCurrency` |
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "fromCurrency": "USD",
+    "toCurrency": "ETH",
+    "fromAmount": 1000,
+    "toAmount": 0.3421,
+    "rate": 0.0003421,
+    "spread": 0.02,
+    "expiresAt": "2026-03-28T12:05:00.000Z"
+  }
+}
+```
+
+---
+
+## Trades
+
+### Create Trade
+
+Initiate an OTC trade from an accepted quote.
+
+```
+POST /v1/exchange/trades
+```
+
+**Request body:**
+```json
+{
+  "fromCurrency": "USD",
+  "toCurrency": "ETH",
+  "fromAmount": 1000,
+  "clientId": "client_abc123",
+  "destinationAddress": "0xClientWalletAddress"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `fromCurrency` | string | Yes | Source currency |
+| `toCurrency` | string | Yes | Target currency |
+| `fromAmount` | number | Yes | Amount to exchange |
+| `clientId` | string | Yes | ID of the registered client |
+| `destinationAddress` | string | Yes | On-chain address to receive crypto |
+
+---
+
+### List Trades
+
+Retrieve trades filtered by status.
+
+```
+GET /v1/exchange/trades?status={status}
+```
+
+**Status values:** `created`, `deposit_pending`, `picked_up`, `released`, `settled`
+
+---
+
+### Get Trade
+
+Retrieve a single trade by ID.
+
+```
+GET /v1/exchange/trades/{id}
+```
+
+---
+
+### Mark Cash Picked Up
+
+Confirm you have received the client's cash. Moves the trade from `deposit_pending` to `picked_up`.
+
+```
+PATCH /v1/exchange/trades/{id}/pickup
+```
+
+No request body required.
+
+---
+
+### Release Escrow
+
+Transfer crypto from escrow to the client's destination address. Moves the trade to `settled`.
+
+```
+POST /v1/exchange/trades/{id}/release
+```
+
+No request body required.
+
+<Warning>
+  Releasing escrow triggers an on-chain transaction. This action is irreversible once broadcast. Verify the destination address before calling this endpoint.
+</Warning>
+
+---
+
+## Client Management
+
+### List Clients
+
+Retrieve all registered OTC clients for your operator account.
+
+```
+GET /v1/exchange/clients
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "client_abc123",
+      "name": "Acme Corp",
+      "kybStatus": "approved",
+      "createdAt": "2026-03-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+Clients are onboarded through the KYB flow before they can trade.
+
+---
+
+## Treasury & Cash Management
+
+### Get Treasury
+
+Retrieve your current treasury position including cash and crypto balances.
+
+```
+GET /v1/exchange/treasury
+```
+
+---
+
+### Get Treasury Summary
+
+Retrieve a dashboard-ready summary with aggregated balances and recent activity.
+
+```
+GET /v1/exchange/treasury/summary
+```
+
+---
+
+### Create Cash Entry
+
+Log a physical cash deposit or withdrawal to keep your treasury position accurate.
+
+```
+POST /v1/exchange/treasury/cash-entry
+```
+
+**Request body:**
+```json
+{
+  "type": "deposit",
+  "amount": 5000,
+  "currency": "USD",
+  "note": "Client cash received — trade #T-001"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `"deposit"` \| `"withdrawal"` | Direction of cash movement |
+| `amount` | number | Cash amount |
+| `currency` | string | Currency code (e.g., `USD`) |
+| `note` | string | Optional reference note |
+
+---
+
+### Get Cash History
+
+Retrieve a paginated list of all cash entries.
+
+```
+GET /v1/exchange/treasury/cash-history
+```
+
+---
+
+## Full API Reference
+
+All endpoints include interactive schemas and a try-it playground in the [API Reference](/api-reference/introduction). The Exchange Kit endpoints are grouped under the **Exchange** tag.
