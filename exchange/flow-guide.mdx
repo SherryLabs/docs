@@ -15,7 +15,7 @@ This guide walks through a complete OTC crypto buy trade: activating your operat
 
 ```bash Environment
 export RELAYER_API_KEY="sk_client_key_v1_your_key_here"
-export BASE_URL="https://relayer-api.onrender.com"
+export RELAYER_BASE_URL="https://relayer-api.onrender.com"  # or https://api.relayer.fi for production
 ```
 
 </CodeGroup>
@@ -29,13 +29,13 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X POST $BASE_URL/v1/exchange/activate \
+    curl -X POST $RELAYER_BASE_URL/v1/exchange/activate \
       -H "Authorization: ApiKey $RELAYER_API_KEY" \
       -H "Content-Type: application/json"
     ```
 
     ```typescript Node.js
-    const response = await fetch(`${BASE_URL}/v1/exchange/activate`, {
+    const response = await fetch(`${RELAYER_BASE_URL}/v1/exchange/activate`, {
       method: "POST",
       headers: {
         "Authorization": `ApiKey ${apiKey}`,
@@ -57,7 +57,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X PATCH $BASE_URL/v1/exchange/operator/spread \
+    curl -X PATCH $RELAYER_BASE_URL/v1/exchange/operator/spread \
       -H "Authorization: ApiKey $RELAYER_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
@@ -67,7 +67,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     ```
 
     ```typescript Node.js
-    const response = await fetch(`${BASE_URL}/v1/exchange/operator/spread`, {
+    const response = await fetch(`${RELAYER_BASE_URL}/v1/exchange/operator/spread`, {
       method: "PATCH",
       headers: {
         "Authorization": `ApiKey ${apiKey}`,
@@ -95,7 +95,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X GET "$BASE_URL/v1/exchange/quote?fromCurrency=USD&toCurrency=ETH&amount=1000" \
+    curl -X GET "$RELAYER_BASE_URL/v1/exchange/quote?fromCurrency=USD&toCurrency=ETH&amount=1000" \
       -H "Authorization: ApiKey $RELAYER_API_KEY"
     ```
 
@@ -107,7 +107,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     });
 
     const response = await fetch(
-      `${BASE_URL}/v1/exchange/quote?${params}`,
+      `${RELAYER_BASE_URL}/v1/exchange/quote?${params}`,
       {
         headers: { "Authorization": `ApiKey ${apiKey}` },
       }
@@ -130,7 +130,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X POST $BASE_URL/v1/exchange/trades \
+    curl -X POST $RELAYER_BASE_URL/v1/exchange/trades \
       -H "Authorization: ApiKey $RELAYER_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
@@ -143,7 +143,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     ```
 
     ```typescript Node.js
-    const response = await fetch(`${BASE_URL}/v1/exchange/trades`, {
+    const response = await fetch(`${RELAYER_BASE_URL}/v1/exchange/trades`, {
       method: "POST",
       headers: {
         "Authorization": `ApiKey ${apiKey}`,
@@ -174,14 +174,14 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X PATCH $BASE_URL/v1/exchange/trades/$TRADE_ID/pickup \
+    curl -X PATCH $RELAYER_BASE_URL/v1/exchange/trades/$TRADE_ID/pickup \
       -H "Authorization: ApiKey $RELAYER_API_KEY" \
       -H "Content-Type: application/json"
     ```
 
     ```typescript Node.js
     const response = await fetch(
-      `${BASE_URL}/v1/exchange/trades/${tradeId}/pickup`,
+      `${RELAYER_BASE_URL}/v1/exchange/trades/${tradeId}/pickup`,
       {
         method: "PATCH",
         headers: {
@@ -203,14 +203,14 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X POST $BASE_URL/v1/exchange/trades/$TRADE_ID/release \
+    curl -X POST $RELAYER_BASE_URL/v1/exchange/trades/$TRADE_ID/release \
       -H "Authorization: ApiKey $RELAYER_API_KEY" \
       -H "Content-Type: application/json"
     ```
 
     ```typescript Node.js
     const response = await fetch(
-      `${BASE_URL}/v1/exchange/trades/${tradeId}/release`,
+      `${RELAYER_BASE_URL}/v1/exchange/trades/${tradeId}/release`,
       {
         method: "POST",
         headers: {
@@ -237,7 +237,7 @@ Poll or store the trade status throughout the lifecycle:
 
 ```typescript Node.js
 const response = await fetch(
-  `${BASE_URL}/v1/exchange/trades/${tradeId}`,
+  `${RELAYER_BASE_URL}/v1/exchange/trades/${tradeId}`,
   {
     headers: { "Authorization": `ApiKey ${apiKey}` },
   }
@@ -250,7 +250,7 @@ console.log(data.status);
 List all trades filtered by status:
 
 ```bash cURL
-curl "$BASE_URL/v1/exchange/trades?status=picked_up" \
+curl "$RELAYER_BASE_URL/v1/exchange/trades?status=picked_up" \
   -H "Authorization: ApiKey $RELAYER_API_KEY"
 ```
 

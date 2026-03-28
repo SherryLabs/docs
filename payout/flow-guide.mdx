@@ -15,7 +15,7 @@ This guide walks through a complete fiat payout: completing KYB as a business cu
 
 ```bash Environment
 export RELAYER_API_KEY="sk_client_key_v1_your_key_here"
-export BASE_URL="https://relayer-api.onrender.com"
+export RELAYER_BASE_URL="https://relayer-api.onrender.com"  # or https://api.relayer.fi for production
 ```
 
 </CodeGroup>
@@ -29,7 +29,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X POST $BASE_URL/v1/payout/rails/business-customers \
+    curl -X POST $RELAYER_BASE_URL/v1/payout/rails/business-customers \
       -H "Authorization: ApiKey $RELAYER_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
@@ -41,7 +41,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     ```
 
     ```typescript Node.js
-    const response = await fetch(`${BASE_URL}/v1/payout/rails/business-customers`, {
+    const response = await fetch(`${RELAYER_BASE_URL}/v1/payout/rails/business-customers`, {
       method: "POST",
       headers: {
         "Authorization": `ApiKey ${apiKey}`,
@@ -73,7 +73,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X POST $BASE_URL/v1/payout/recipients \
+    curl -X POST $RELAYER_BASE_URL/v1/payout/recipients \
       -H "Authorization: ApiKey $RELAYER_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
@@ -90,7 +90,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     ```
 
     ```typescript Node.js
-    const response = await fetch(`${BASE_URL}/v1/payout/recipients`, {
+    const response = await fetch(`${RELAYER_BASE_URL}/v1/payout/recipients`, {
       method: "POST",
       headers: {
         "Authorization": `ApiKey ${apiKey}`,
@@ -121,13 +121,13 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X POST $BASE_URL/v1/payout/recipients/$BENEFICIARY_ID/invite \
+    curl -X POST $RELAYER_BASE_URL/v1/payout/recipients/$BENEFICIARY_ID/invite \
       -H "Authorization: ApiKey $RELAYER_API_KEY"
     ```
 
     ```typescript Node.js
     const response = await fetch(
-      `${BASE_URL}/v1/payout/recipients/${beneficiaryId}/invite`,
+      `${RELAYER_BASE_URL}/v1/payout/recipients/${beneficiaryId}/invite`,
       {
         method: "POST",
         headers: { "Authorization": `ApiKey ${apiKey}` },
@@ -149,7 +149,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X POST $BASE_URL/v1/payout/accounts/setup/liquidation-address \
+    curl -X POST $RELAYER_BASE_URL/v1/payout/accounts/setup/liquidation-address \
       -H "Authorization: ApiKey $RELAYER_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
@@ -162,7 +162,7 @@ export BASE_URL="https://relayer-api.onrender.com"
 
     ```typescript Node.js
     const response = await fetch(
-      `${BASE_URL}/v1/payout/accounts/setup/liquidation-address`,
+      `${RELAYER_BASE_URL}/v1/payout/accounts/setup/liquidation-address`,
       {
         method: "POST",
         headers: {
@@ -191,7 +191,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X POST $BASE_URL/v1/payout/accounts/setup/virtual-account \
+    curl -X POST $RELAYER_BASE_URL/v1/payout/accounts/setup/virtual-account \
       -H "Authorization: ApiKey $RELAYER_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
@@ -202,7 +202,7 @@ export BASE_URL="https://relayer-api.onrender.com"
 
     ```typescript Node.js
     const response = await fetch(
-      `${BASE_URL}/v1/payout/accounts/setup/virtual-account`,
+      `${RELAYER_BASE_URL}/v1/payout/accounts/setup/virtual-account`,
       {
         method: "POST",
         headers: {
@@ -231,7 +231,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X POST $BASE_URL/v1/payout/accounts/quote \
+    curl -X POST $RELAYER_BASE_URL/v1/payout/accounts/quote \
       -H "Authorization: ApiKey $RELAYER_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
@@ -242,7 +242,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     ```
 
     ```typescript Node.js
-    const response = await fetch(`${BASE_URL}/v1/payout/accounts/quote`, {
+    const response = await fetch(`${RELAYER_BASE_URL}/v1/payout/accounts/quote`, {
       method: "POST",
       headers: {
         "Authorization": `ApiKey ${apiKey}`,
@@ -270,7 +270,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X POST $BASE_URL/v1/payout/accounts/execute \
+    curl -X POST $RELAYER_BASE_URL/v1/payout/accounts/execute \
       -H "Authorization: ApiKey $RELAYER_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
@@ -280,7 +280,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     ```
 
     ```typescript Node.js
-    const response = await fetch(`${BASE_URL}/v1/payout/accounts/execute`, {
+    const response = await fetch(`${RELAYER_BASE_URL}/v1/payout/accounts/execute`, {
       method: "POST",
       headers: {
         "Authorization": `ApiKey ${apiKey}`,

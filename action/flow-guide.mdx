@@ -15,7 +15,7 @@ This guide walks through creating a Swap mini-app: selecting tokens, generating 
 
 ```bash Environment
 export RELAYER_API_KEY="sk_client_key_v1_your_key_here"
-export BASE_URL="https://relayer-api.onrender.com"
+export RELAYER_BASE_URL="https://relayer-api.onrender.com"  # or https://api.relayer.fi for production
 ```
 
 </CodeGroup>
@@ -29,13 +29,13 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X GET "$BASE_URL/v1/action/tokens/polygon/uniswap" \
+    curl -X GET "$RELAYER_BASE_URL/v1/action/tokens/polygon/uniswap" \
       -H "Authorization: ApiKey $RELAYER_API_KEY"
     ```
 
     ```typescript Node.js
     const response = await fetch(
-      `${BASE_URL}/v1/action/tokens/polygon/uniswap`,
+      `${RELAYER_BASE_URL}/v1/action/tokens/polygon/uniswap`,
       {
         headers: { "Authorization": `ApiKey ${apiKey}` },
       }
@@ -56,7 +56,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X POST $BASE_URL/v1/action/builders/swap \
+    curl -X POST $RELAYER_BASE_URL/v1/action/builders/swap \
       -H "Authorization: ApiKey $RELAYER_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
@@ -69,7 +69,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     ```
 
     ```typescript Node.js
-    const response = await fetch(`${BASE_URL}/v1/action/builders/swap`, {
+    const response = await fetch(`${RELAYER_BASE_URL}/v1/action/builders/swap`, {
       method: "POST",
       headers: {
         "Authorization": `ApiKey ${apiKey}`,
@@ -99,7 +99,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X POST $BASE_URL/v1/action \
+    curl -X POST $RELAYER_BASE_URL/v1/action \
       -H "Authorization: ApiKey $RELAYER_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
@@ -111,7 +111,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     ```
 
     ```typescript Node.js
-    const response = await fetch(`${BASE_URL}/v1/action`, {
+    const response = await fetch(`${RELAYER_BASE_URL}/v1/action`, {
       method: "POST",
       headers: {
         "Authorization": `ApiKey ${apiKey}`,
@@ -144,11 +144,11 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X GET $BASE_URL/v1/action/directory
+    curl -X GET $RELAYER_BASE_URL/v1/action/directory
     ```
 
     ```typescript Node.js
-    const response = await fetch(`${BASE_URL}/v1/action/directory`);
+    const response = await fetch(`${RELAYER_BASE_URL}/v1/action/directory`);
     const { data } = await response.json();
     const myApp = data.find((app: any) => app.id === miniAppId);
     console.log(`Mini-app in directory: ${!!myApp}`);
@@ -165,7 +165,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X POST $BASE_URL/v1/action/indexing/events \
+    curl -X POST $RELAYER_BASE_URL/v1/action/indexing/events \
       -H "Authorization: ApiKey $RELAYER_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
@@ -178,7 +178,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     ```
 
     ```typescript Node.js
-    const response = await fetch(`${BASE_URL}/v1/action/indexing/events`, {
+    const response = await fetch(`${RELAYER_BASE_URL}/v1/action/indexing/events`, {
       method: "POST",
       headers: {
         "Authorization": `ApiKey ${apiKey}`,
@@ -207,7 +207,7 @@ export BASE_URL="https://relayer-api.onrender.com"
     <CodeGroup>
 
     ```bash cURL
-    curl -X GET "$BASE_URL/v1/action/rewards/metrics?address=0xKOLWalletAddress" \
+    curl -X GET "$RELAYER_BASE_URL/v1/action/rewards/metrics?address=0xKOLWalletAddress" \
       -H "Authorization: ApiKey $RELAYER_API_KEY"
     ```
 
@@ -216,7 +216,7 @@ export BASE_URL="https://relayer-api.onrender.com"
       address: "0xKOLWalletAddress",
     });
     const response = await fetch(
-      `${BASE_URL}/v1/action/rewards/metrics?${params}`,
+      `${RELAYER_BASE_URL}/v1/action/rewards/metrics?${params}`,
       {
         headers: { "Authorization": `ApiKey ${apiKey}` },
       }
@@ -236,7 +236,7 @@ export BASE_URL="https://relayer-api.onrender.com"
 Update metadata or display info for an existing mini-app:
 
 ```typescript Node.js
-const response = await fetch(`${BASE_URL}/v1/action/${miniAppId}`, {
+const response = await fetch(`${RELAYER_BASE_URL}/v1/action/${miniAppId}`, {
   method: "PATCH",
   headers: {
     "Authorization": `ApiKey ${apiKey}`,
@@ -254,7 +254,7 @@ const response = await fetch(`${BASE_URL}/v1/action/${miniAppId}`, {
 Get the raw metadata object for any mini-app by ID:
 
 ```bash cURL
-curl "$BASE_URL/v1/action/$MINI_APP_ID/metadata" \
+curl "$RELAYER_BASE_URL/v1/action/$MINI_APP_ID/metadata" \
   -H "Authorization: ApiKey $RELAYER_API_KEY"
 ```
 

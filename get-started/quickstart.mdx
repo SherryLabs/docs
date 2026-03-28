@@ -11,24 +11,57 @@ This guide walks you through making your first Relayer API call. You will verify
 - An API key from your operator dashboard (see [Authentication](/get-started/authentication))
 - `curl` or Node.js installed
 
+## Environments
+
+Relayer provides two environments. Choose the one that matches your stage:
+
+| Environment | Base URL | Use for |
+|-------------|----------|---------|
+| **Sandbox** | `https://relayer-api.onrender.com` | Testing and development |
+| **Production** | `https://api.relayer.fi` | Live operations |
+
+<Warning>
+  Sandbox runs on Render free tier — the first request after idle may take 30-60 seconds to cold-start.
+</Warning>
+
 ## Step 1: Verify Connectivity
 
 Start with the health check endpoint. It requires no authentication and confirms the API is reachable.
 
-<CodeGroup>
+<Tabs>
+  <Tab title="Sandbox">
+    <CodeGroup>
 
-```bash cURL
-curl https://relayer-api.onrender.com/health
-```
+    ```bash cURL
+    curl https://relayer-api.onrender.com/health
+    ```
 
-```typescript Node.js
-const response = await fetch("https://relayer-api.onrender.com/health");
-const data = await response.json();
-console.log(data);
-// Expected: { "status": "ok" }
-```
+    ```typescript Node.js
+    const response = await fetch("https://relayer-api.onrender.com/health");
+    const data = await response.json();
+    console.log(data);
+    // Expected: { "status": "ok" }
+    ```
 
-</CodeGroup>
+    </CodeGroup>
+  </Tab>
+  <Tab title="Production">
+    <CodeGroup>
+
+    ```bash cURL
+    curl https://api.relayer.fi/health
+    ```
+
+    ```typescript Node.js
+    const response = await fetch("https://api.relayer.fi/health");
+    const data = await response.json();
+    console.log(data);
+    // Expected: { "status": "ok" }
+    ```
+
+    </CodeGroup>
+  </Tab>
+</Tabs>
 
 You should receive:
 
@@ -38,21 +71,42 @@ You should receive:
 }
 ```
 
-## Step 2: Set Up Your API Key
+## Step 2: Set Up Your Environment
 
-Store your API key as an environment variable so you do not hardcode it:
+Store your API key and base URL as environment variables:
 
-<CodeGroup>
+<Tabs>
+  <Tab title="Sandbox">
+    <CodeGroup>
 
-```bash Terminal
-export RELAYER_API_KEY="sk_client_key_v1_your_key_here"
-```
+    ```bash Terminal
+    export RELAYER_BASE_URL="https://relayer-api.onrender.com"
+    export RELAYER_API_KEY="sk_client_key_v1_your_key_here"
+    ```
 
-```text .env file
-RELAYER_API_KEY=sk_client_key_v1_your_key_here
-```
+    ```text .env file
+    RELAYER_BASE_URL=https://relayer-api.onrender.com
+    RELAYER_API_KEY=sk_client_key_v1_your_key_here
+    ```
 
-</CodeGroup>
+    </CodeGroup>
+  </Tab>
+  <Tab title="Production">
+    <CodeGroup>
+
+    ```bash Terminal
+    export RELAYER_BASE_URL="https://api.relayer.fi"
+    export RELAYER_API_KEY="sk_client_key_v1_your_production_key"
+    ```
+
+    ```text .env file
+    RELAYER_BASE_URL=https://api.relayer.fi
+    RELAYER_API_KEY=sk_client_key_v1_your_production_key
+    ```
+
+    </CodeGroup>
+  </Tab>
+</Tabs>
 
 ## Step 3: Make an Authenticated Request
 
@@ -61,16 +115,17 @@ Now make a request that requires authentication. This example lists available ex
 <CodeGroup>
 
 ```bash cURL
-curl -X GET https://relayer-api.onrender.com/v1/exchange/quotes \
+curl -X GET $RELAYER_BASE_URL/v1/exchange/quotes \
   -H "Authorization: ApiKey $RELAYER_API_KEY" \
   -H "Content-Type: application/json"
 ```
 
 ```typescript Node.js
+const baseUrl = process.env.RELAYER_BASE_URL;
 const apiKey = process.env.RELAYER_API_KEY;
 
 const response = await fetch(
-  "https://relayer-api.onrender.com/v1/exchange/quotes",
+  `${baseUrl}/v1/exchange/quotes`,
   {
     headers: {
       "Authorization": `ApiKey ${apiKey}`,
@@ -99,7 +154,7 @@ A successful response looks like:
 ```
 
 <Tip>
-  An empty `data` array is expected on a fresh sandbox account. It means the API authenticated your request successfully -- you just have not created any quotes yet.
+  An empty `data` array is expected on a fresh account. It means the API authenticated your request successfully — you just have not created any quotes yet.
 </Tip>
 
 ## Step 4: Explore the Kits
@@ -125,7 +180,7 @@ Now that you are authenticated, explore the Kit that matches your use case:
 
 | Problem | Solution |
 |---------|----------|
-| `Connection refused` | Check the base URL -- sandbox is `https://relayer-api.onrender.com` |
+| `Connection refused` | Check `RELAYER_BASE_URL` — sandbox: `https://relayer-api.onrender.com`, production: `https://api.relayer.fi` |
 | `401 Unauthorized` | Verify your `Authorization` header uses `ApiKey` prefix (not `Bearer`) |
 | `404 Not Found` | Check the endpoint path starts with `/v1/` |
-| Slow first response | Sandbox runs on Render free tier -- first request after idle may take 30-60 seconds |
+| Slow first response | Sandbox cold-starts after idle (30-60s). Production does not have this delay. |
