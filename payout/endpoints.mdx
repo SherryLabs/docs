@@ -1,6 +1,422 @@
 ---
 title: "Payout Endpoints"
-description: "Account, recipient, and settlement API reference"
+description: "Rails (KYB), accounts (virtual accounts, payments), and recipients (beneficiaries, bank accounts) reference"
+sidebarTitle: "Endpoints"
 ---
 
-Content coming in Phase 22.
+Reference for all Payout Kit endpoints. For interactive schemas and try-it functionality, see the [API Reference](/api-reference/introduction).
+
+## Payout Rails
+
+Rails endpoints wrap Bridge's KYB and transfer infrastructure.
+
+### Create Business Customer
+
+Register your operator account with Bridge for KYB. Required before processing any payouts.
+
+```
+POST /v1/payout/rails/business-customers
+```
+
+**Request body:**
+```json
+{
+  "businessName": "Acme Operator LLC",
+  "registrationNumber": "12-3456789",
+  "country": "US",
+  "website": "https://acme.example.com"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "cust_abc123",
+    "kybStatus": "pending",
+    "createdAt": "2026-03-28T12:00:00.000Z"
+  }
+}
+```
+
+KYB review is asynchronous. Status transitions from `pending` to `approved` (or `rejected`).
+
+---
+
+### Get Business Customer
+
+```
+GET /v1/payout/rails/business-customers/:id
+```
+
+Poll this endpoint to check KYB approval status.
+
+---
+
+### Create External Account
+
+Register a bank account with Bridge for off-ramp transfers.
+
+```
+POST /v1/payout/rails/external-accounts
+```
+
+---
+
+### List External Accounts
+
+```
+GET /v1/payout/rails/external-accounts
+```
+
+---
+
+### Create Transfer
+
+Initiate a direct off-ramp transfer via Bridge.
+
+```
+POST /v1/payout/rails/transfers
+```
+
+<Warning>
+  For most use cases, prefer the higher-level `POST /v1/payout/accounts/execute` endpoint which handles quoting and execution in a managed flow. Use direct transfers only for advanced scenarios.
+</Warning>
+
+---
+
+## Payout Accounts
+
+Account setup and payment execution endpoints.
+
+### Step 1: Create Liquidation Address
+
+Link a beneficiary's bank account to a crypto chain for off-ramp. Idempotent — returns the existing address if already configured for this beneficiary.
+
+```
+POST /v1/payout/accounts/setup/liquidation-address
+```
+
+**Request body:**
+```json
+{
+  "beneficiaryId": "ben_abc123",
+  "externalAccountId": "ext_xyz789",
+  "chain": "polygon",
+  "currency": "usdc"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `beneficiaryId` | string | Relayer beneficiary ID |
+| `externalAccountId` | string | Bridge external account ID |
+| `chain` | string | Blockchain network (e.g., `polygon`, `base`) |
+| `currency` | string | Stablecoin (e.g., `usdc`, `usdt`) |
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "liq_def456",
+    "address": "0xLiquidationAddress",
+    "chain": "polygon",
+    "currency": "usdc"
+  }
+}
+```
+
+---
+
+### Step 2: Create Virtual Account
+
+Create an MXN SPEI virtual account with a CLABE. Requires a liquidation address to exist first. Idempotent.
+
+```
+POST /v1/payout/accounts/setup/virtual-account
+```
+
+**Request body:**
+```json
+{
+  "beneficiaryId": "ben_abc123",
+  "liquidationAddressId": "liq_def456"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "va_ghi789",
+    "clabe": "646180123456789012",
+    "currency": "MXN",
+    "beneficiaryId": "ben_abc123"
+  }
+}
+```
+
+The `clabe` is the SPEI account number your client deposits MXN to.
+
+---
+
+### Get Payment Quote
+
+Get the exchange rate and fees for a payment before executing.
+
+```
+POST /v1/payout/accounts/quote
+```
+
+**Request body:**
+```json
+{
+  "beneficiaryId": "ben_abc123",
+  "amount": 1000,
+  "currency": "MXN"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "quoteId": "qte_jkl012",
+    "amount": 1000,
+    "currency": "MXN",
+    "rate": 17.25,
+    "fees": 2.50,
+    "netAmount": 997.50,
+    "expiresAt": "2026-03-28T12:10:00.000Z"
+  }
+}
+```
+
+---
+
+### Execute Payment
+
+Trigger a payment using an accepted quote. Initiates off-ramp settlement.
+
+```
+POST /v1/payout/accounts/execute
+```
+
+**Request body:**
+```json
+{
+  "quoteId": "qte_jkl012",
+  "beneficiaryId": "ben_abc123"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "transferId": "xfr_mno345",
+    "status": "pending",
+    "amount": 997.50,
+    "currency": "MXN"
+  }
+}
+```
+
+<Warning>
+  Payment execution is irreversible once initiated. Verify quote and recipient details before calling this endpoint.
+</Warning>
+
+---
+
+### List Virtual Accounts
+
+```
+GET /v1/payout/accounts
+```
+
+Returns all virtual accounts configured for your operator.
+
+---
+
+## Payout Recipients
+
+Beneficiary and bank account management.
+
+### Create Beneficiary
+
+Create a recipient record. Stored in Relayer's database — no Bridge call at creation.
+
+```
+POST /v1/payout/recipients
+```
+
+**Request body:**
+```json
+{
+  "name": "Maria Garcia",
+  "email": "maria@example.com",
+  "ownerType": "individual",
+  "address": {
+    "street": "Paseo de la Reforma 123",
+    "city": "Mexico City",
+    "country": "MX",
+    "postalCode": "06600"
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Beneficiary display name |
+| `email` | string | Contact email |
+| `ownerType` | `"individual"` \| `"business"` | Entity type |
+| `address` | object | Physical address |
+
+---
+
+### List Beneficiaries
+
+```
+GET /v1/payout/recipients
+```
+
+Returns all active beneficiaries for your operator.
+
+---
+
+### List Beneficiaries with Accounts
+
+Returns beneficiaries with their linked bank accounts in a single query.
+
+```
+GET /v1/payout/recipients/with-accounts
+```
+
+---
+
+### Update Beneficiary
+
+Update the name and/or email of a beneficiary. At least one field is required.
+
+```
+PATCH /v1/payout/recipients/:id
+```
+
+**Request body:**
+```json
+{
+  "name": "Maria Garcia Hernandez",
+  "email": "maria.updated@example.com"
+}
+```
+
+---
+
+### Update Beneficiary Status
+
+Archive or restore a beneficiary. Archived beneficiaries cannot receive payouts.
+
+```
+PATCH /v1/payout/recipients/:id/status
+```
+
+**Request body:**
+```json
+{
+  "status": "archived"
+}
+```
+
+Valid values: `active`, `archived`
+
+---
+
+### Get Invite Link
+
+Return the current invite token and URL for a beneficiary to submit their bank details.
+
+```
+GET /v1/payout/recipients/:id/invite
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "inviteUrl": "https://app.relayer.fi/invite/tok_abc123",
+    "token": "tok_abc123",
+    "expiresAt": "2026-04-04T12:00:00.000Z"
+  }
+}
+```
+
+---
+
+### Generate Invite Link
+
+Create a new invite token (valid 7 days). Replaces any existing invite.
+
+```
+POST /v1/payout/recipients/:id/invite
+```
+
+No request body required.
+
+---
+
+### Add Bank Account
+
+Register a bank account with Bridge and link it to the beneficiary. One beneficiary can have multiple accounts.
+
+```
+POST /v1/payout/recipients/:id/accounts
+```
+
+**Request body:**
+```json
+{
+  "accountNumber": "1234567890",
+  "routingNumber": "021000021",
+  "accountType": "checking",
+  "bankName": "Bank of America"
+}
+```
+
+<Warning>
+  `account_number`, `clabe`, and `iban` are immutable once set. Use `PATCH /recipients/:id/accounts/:accountId` to update other fields.
+</Warning>
+
+---
+
+### Update Bank Account
+
+Update editable fields on a bank account. Changes are synced to Bridge.
+
+```
+PATCH /v1/payout/recipients/:id/accounts/:accountId
+```
+
+Editable fields: `routing_number`, `checking_or_savings`, `address`.
+Immutable fields: `account_number`, `clabe`, `iban`.
+
+---
+
+### List Bank Accounts
+
+```
+GET /v1/payout/recipients/:id/accounts
+```
+
+Returns all active bank accounts linked to a beneficiary.
+
+---
+
+## Full API Reference
+
+All endpoints include interactive schemas and a try-it playground in the [API Reference](/api-reference/introduction). Payout endpoints are grouped under the **Payout: Rails**, **Payout: Accounts**, and **Payout: Recipients** tags.

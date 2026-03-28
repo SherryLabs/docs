@@ -1,6 +1,319 @@
 ---
 title: "Payout Flow Guide"
-description: "End-to-end payout walkthrough"
+description: "Execute an end-to-end fiat payout — from KYB setup to bank settlement"
+sidebarTitle: "Flow Guide"
 ---
 
-Content coming in Phase 22.
+This guide walks through a complete fiat payout: completing KYB as a business customer, onboarding a recipient, setting up their virtual account, and executing a payment that settles to their bank.
+
+## Prerequisites
+
+- A Relayer API key (see [Authentication](/get-started/authentication))
+- Your account activated with the Payout module enabled
+
+<CodeGroup>
+
+```bash Environment
+export RELAYER_API_KEY="sk_client_key_v1_your_key_here"
+export BASE_URL="https://relayer-api.onrender.com"
+```
+
+</CodeGroup>
+
+## Steps
+
+<Steps>
+  <Step title="Create a business customer (KYB)">
+    Register your operator account with Bridge for KYB compliance. This is a one-time setup.
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl -X POST $BASE_URL/v1/payout/rails/business-customers \
+      -H "Authorization: ApiKey $RELAYER_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "businessName": "Acme Operator LLC",
+        "registrationNumber": "12-3456789",
+        "country": "US",
+        "website": "https://acme.example.com"
+      }'
+    ```
+
+    ```typescript Node.js
+    const response = await fetch(`${BASE_URL}/v1/payout/rails/business-customers`, {
+      method: "POST",
+      headers: {
+        "Authorization": `ApiKey ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        businessName: "Acme Operator LLC",
+        registrationNumber: "12-3456789",
+        country: "US",
+        website: "https://acme.example.com",
+      }),
+    });
+    const { data } = await response.json();
+    // data.id — your Bridge business customer ID
+    // data.kybStatus — "pending" initially, "approved" once Bridge reviews
+    const customerId = data.id;
+    ```
+
+    </CodeGroup>
+
+    <Tip>
+      KYB review is asynchronous. Poll `GET /v1/payout/rails/business-customers/:id` or listen for the Bridge webhook to confirm approval before proceeding.
+    </Tip>
+  </Step>
+
+  <Step title="Create a beneficiary (recipient)">
+    Register the person or business you want to pay. This creates a Relayer record — no Bridge call yet.
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl -X POST $BASE_URL/v1/payout/recipients \
+      -H "Authorization: ApiKey $RELAYER_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "name": "Maria Garcia",
+        "email": "maria@example.com",
+        "ownerType": "individual",
+        "address": {
+          "street": "Paseo de la Reforma 123",
+          "city": "Mexico City",
+          "country": "MX",
+          "postalCode": "06600"
+        }
+      }'
+    ```
+
+    ```typescript Node.js
+    const response = await fetch(`${BASE_URL}/v1/payout/recipients`, {
+      method: "POST",
+      headers: {
+        "Authorization": `ApiKey ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "Maria Garcia",
+        email: "maria@example.com",
+        ownerType: "individual",
+        address: {
+          street: "Paseo de la Reforma 123",
+          city: "Mexico City",
+          country: "MX",
+          postalCode: "06600",
+        },
+      }),
+    });
+    const { data } = await response.json();
+    const beneficiaryId = data.id;
+    ```
+
+    </CodeGroup>
+  </Step>
+
+  <Step title="Invite the beneficiary to add their bank account">
+    Generate an invite link. The beneficiary visits this URL to submit their bank details securely. The token is valid for 7 days.
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl -X POST $BASE_URL/v1/payout/recipients/$BENEFICIARY_ID/invite \
+      -H "Authorization: ApiKey $RELAYER_API_KEY"
+    ```
+
+    ```typescript Node.js
+    const response = await fetch(
+      `${BASE_URL}/v1/payout/recipients/${beneficiaryId}/invite`,
+      {
+        method: "POST",
+        headers: { "Authorization": `ApiKey ${apiKey}` },
+      }
+    );
+    const { data } = await response.json();
+    // data.inviteUrl — send this to the beneficiary
+    console.log(`Send invite to beneficiary: ${data.inviteUrl}`);
+    ```
+
+    </CodeGroup>
+
+    Once the beneficiary submits their bank details, Relayer registers the account with Bridge. You can check bank accounts at any time via `GET /v1/payout/recipients/:id/accounts`.
+  </Step>
+
+  <Step title="Create a liquidation address">
+    Link the beneficiary's bank account to a crypto chain. Funds sent to this address trigger the off-ramp. This call is idempotent.
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl -X POST $BASE_URL/v1/payout/accounts/setup/liquidation-address \
+      -H "Authorization: ApiKey $RELAYER_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "beneficiaryId": "ben_abc123",
+        "externalAccountId": "ext_xyz789",
+        "chain": "polygon",
+        "currency": "usdc"
+      }'
+    ```
+
+    ```typescript Node.js
+    const response = await fetch(
+      `${BASE_URL}/v1/payout/accounts/setup/liquidation-address`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `ApiKey ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          beneficiaryId: "ben_abc123",
+          externalAccountId: "ext_xyz789",
+          chain: "polygon",
+          currency: "usdc",
+        }),
+      }
+    );
+    const { data } = await response.json();
+    // data.address — the crypto address to use as destination
+    const liquidationAddress = data.address;
+    ```
+
+    </CodeGroup>
+  </Step>
+
+  <Step title="Create a virtual account (CLABE)">
+    Create an MXN SPEI virtual account using the liquidation address. Returns the CLABE your client uses for fiat deposits. This call is idempotent.
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl -X POST $BASE_URL/v1/payout/accounts/setup/virtual-account \
+      -H "Authorization: ApiKey $RELAYER_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "beneficiaryId": "ben_abc123",
+        "liquidationAddressId": "liq_def456"
+      }'
+    ```
+
+    ```typescript Node.js
+    const response = await fetch(
+      `${BASE_URL}/v1/payout/accounts/setup/virtual-account`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `ApiKey ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          beneficiaryId: "ben_abc123",
+          liquidationAddressId: "liq_def456",
+        }),
+      }
+    );
+    const { data } = await response.json();
+    // data.clabe — share this CLABE with your client for deposits
+    console.log(`Client CLABE: ${data.clabe}`);
+    ```
+
+    </CodeGroup>
+
+    Share the CLABE with your client. When they deposit MXN to this CLABE, Bridge routes the funds through the liquidation address.
+  </Step>
+
+  <Step title="Get a payment quote">
+    Before executing a settlement, get a quote to confirm the rate and fees.
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl -X POST $BASE_URL/v1/payout/accounts/quote \
+      -H "Authorization: ApiKey $RELAYER_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "beneficiaryId": "ben_abc123",
+        "amount": 1000,
+        "currency": "MXN"
+      }'
+    ```
+
+    ```typescript Node.js
+    const response = await fetch(`${BASE_URL}/v1/payout/accounts/quote`, {
+      method: "POST",
+      headers: {
+        "Authorization": `ApiKey ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        beneficiaryId: "ben_abc123",
+        amount: 1000,
+        currency: "MXN",
+      }),
+    });
+    const { data } = await response.json();
+    // data.rate — exchange rate applied
+    // data.fees — Bridge fees
+    // data.netAmount — recipient receives this amount
+    const quoteId = data.quoteId;
+    ```
+
+    </CodeGroup>
+  </Step>
+
+  <Step title="Execute the payment">
+    Trigger the settlement. This initiates the off-ramp transfer from your operator account to the beneficiary's bank.
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl -X POST $BASE_URL/v1/payout/accounts/execute \
+      -H "Authorization: ApiKey $RELAYER_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "quoteId": "qte_ghi789",
+        "beneficiaryId": "ben_abc123"
+      }'
+    ```
+
+    ```typescript Node.js
+    const response = await fetch(`${BASE_URL}/v1/payout/accounts/execute`, {
+      method: "POST",
+      headers: {
+        "Authorization": `ApiKey ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        quoteId: "qte_ghi789",
+        beneficiaryId: "ben_abc123",
+      }),
+    });
+    const { data } = await response.json();
+    // data.transferId — Bridge transfer ID for tracking
+    // data.status — "pending" initially
+    console.log(`Transfer initiated: ${data.transferId}`);
+    ```
+
+    </CodeGroup>
+
+    <Warning>
+      Payment execution is irreversible once initiated. Confirm the quote details and beneficiary bank account before calling this endpoint.
+    </Warning>
+
+    Settlement typically completes within 1-2 business days via SPEI. Bridge sends webhook events for status updates.
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Endpoints" icon="code" href="/payout/endpoints">
+    Full endpoint reference for rails, accounts, and recipients.
+  </Card>
+  <Card title="API Reference" icon="book" href="/api-reference/introduction">
+    Interactive schemas and try-it playground.
+  </Card>
+</CardGroup>
