@@ -18,7 +18,16 @@
             "pages": [
               "get-started/overview",
               "get-started/authentication",
-              "get-started/quickstart"
+              "get-started/quickstart",
+              "get-started/changelog"
+            ]
+          },
+          {
+            "group": "Shared",
+            "pages": [
+              "shared/architecture",
+              "shared/glossary",
+              "shared/error-reference"
             ]
           }
         ]
