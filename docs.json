@@ -2,13 +2,13 @@
   "$schema": "https://mintlify.com/docs.json",
   "llms": true,
   "theme": "mint",
-  "name": "Relayer",
+  "name": "Overview | Relayer.fi ",
   "colors": {
-    "primary": "#0D9373",
-    "light": "#07C983",
-    "dark": "#0D9373"
+    "primary": "#2C8C99",
+    "light": "#38BFC2",
+    "dark": "#38BFC2"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/images/favicon.ico",
   "navigation": {
     "tabs": [
       {
@@ -134,8 +134,8 @@
     }
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/images/Relayer-darklogo-coloriso.png",
+    "dark": "/images/Relayer-whitelogo-coloriso.svg"
   },
   "navbar": {
     "links": [
@@ -175,5 +175,8 @@
     { "source": "/ai-tools/claude-code", "destination": "/get-started/overview" },
     { "source": "/ai-tools/cursor", "destination": "/get-started/overview" },
     { "source": "/ai-tools/windsurf", "destination": "/get-started/overview" }
-  ]
+  ],
+  "appearance": {
+    "default": "system"
+  }
 }
