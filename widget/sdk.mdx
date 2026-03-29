@@ -1,10 +1,14 @@
 ---
 title: "sherry-sdk"
-description: "TypeScript SDK for building blockchain action metadata — define actions, validate schemas, and create triggers for social embedding"
+description: "TypeScript SDK for building blockchain action metadata — works identically in both Turnkey Mode and Metadata Mode"
 sidebarTitle: "sherry-sdk"
 ---
 
 The sherry-sdk (`@sherrylinks/sdk`) is the TypeScript library for building blockchain action metadata. It defines the action schema, validates metadata before submission, and provides template helpers for common parameter types. Use it to create the metadata object that powers a Relayer Trigger.
+
+<Note>
+The sherry-sdk metadata layer is **mode-agnostic**. Whether your integration uses Turnkey Mode (passkey signing) or Metadata Mode (bring your own wallet), the metadata schema and validation are identical. The SDK defines *what* action to perform — the integration mode determines *how* signing happens.
+</Note>
 
 ## Install
 
