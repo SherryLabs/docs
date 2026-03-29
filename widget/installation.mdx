@@ -1,10 +1,10 @@
 ---
 title: "Installation"
-description: "Install @relayer-fi/widgets and configure wallet providers in your project"
+description: "Install @relayer-fi/widgets and configure providers for Turnkey Mode or Metadata Mode integration"
 sidebarTitle: "Installation"
 ---
 
-Install the widget library and its peer dependencies, then wrap your app with the required providers.
+Install the widget library and its peer dependencies, then configure providers based on your integration mode. Both Turnkey Mode and Metadata Mode start with the same base install.
 
 ## Install Packages
 
@@ -27,6 +27,35 @@ yarn add @relayer-fi/widgets wagmi viem @tanstack/react-query framer-motion
 <Note>
 `@relayer-fi/action-kit` and `@relayer-fi/widgets-core` are peer packages bundled internally — you do not install them separately.
 </Note>
+
+## Choose Your Integration Mode
+
+<Tabs>
+  <Tab title="Turnkey Mode">
+    <Info>
+    Turnkey Mode is for integrators whose wallets are managed through Relayer's Turnkey infrastructure. Each integrator gets a dedicated Turnkey sub-organization with passkey-based signing.
+    </Info>
+
+    In addition to the base packages, Turnkey Mode integrators should be aware that:
+    - The widget handles Turnkey passkey prompts internally — no additional Turnkey SDK install is needed in your frontend
+    - Your users will see a biometric prompt (Face ID, fingerprint, security key) when signing transactions
+    - Wallet creation and passkey registration are handled through the Relayer API and dashboard
+
+    Proceed to the wagmi configuration below — the Trigger component manages the Turnkey signing flow automatically.
+  </Tab>
+  <Tab title="Metadata Mode">
+    <Info>
+    Metadata Mode is for integrators who bring their own wallet infrastructure (MPC, HSM, MetaMask, WalletConnect, or any EVM-compatible signer).
+    </Info>
+
+    No additional packages are needed beyond the base install. In Metadata Mode:
+    - The widget requests routing and calldata from the Relayer API
+    - Your application receives the transaction metadata
+    - You build, sign, and broadcast using your own wallet stack
+
+    The wagmi configuration below is still recommended for chain management and provider connectivity, but transaction signing is handled by your infrastructure.
+  </Tab>
+</Tabs>
 
 ## Configure Wagmi
 
