@@ -1,63 +1,247 @@
 ---
 title: "Integration Guide"
-description: "Embed the Trigger component and configure theming in Next.js and React"
+description: "Integrate widgets using Turnkey Mode (passkey signing) or Metadata Mode (bring your own wallet) — with examples for Swap, Earn, Transfer, and Payment"
 sidebarTitle: "Integration Guide"
 ---
 
-This guide shows how to render a Trigger component from a blockchain action URL, connect it to a wagmi wallet adapter, and apply light/dark theming.
+This guide covers two integration paths: Turnkey Mode where the widget handles passkey-based signing through Turnkey, and Metadata Mode where you receive transaction metadata to sign with your own infrastructure. Both modes use the same Trigger component.
 
 <Info>
-**Prerequisites:** wagmi providers configured per [Installation](/widget/installation). A blockchain action URL — get one from the [Relayer directory](/action/flow-guide) or use the example URL in the snippets below.
+**Prerequisites:** wagmi providers configured per [Installation](/widget/installation). An understanding of your integration mode — see the [Overview](/widget/overview) for architecture details.
 </Info>
 
-## Render a Trigger
+## Turnkey Mode Integration
+
+In Turnkey Mode, the widget manages the full transaction lifecycle: prepare, sign via passkey, and confirm. You provide a wallet adapter and an action URL.
 
 <Steps>
 
 <Step title="Create the adapter">
 
-Use the `useWagmiAdapter` hook (recommended) or `createWagmiAdapter` for one-off usage outside React components:
+Use the `useWagmiAdapter` hook and render a `Trigger` with your action URL:
 
-```typescript src/components/MyWidget.tsx
+```tsx src/components/SwapWidget.tsx
 'use client';
-
 import { useWagmiAdapter, Trigger } from '@relayer-fi/widgets';
 
-export function MyWidget() {
+export function SwapWidget() {
   const adapter = useWagmiAdapter();
-
   return (
     <Trigger
       adapter={adapter}
-      url="https://api.relayer.fi/v1/action/example-swap"
+      url="https://api.relayer.fi/v1/action/swap/metadata"
     />
   );
 }
 ```
 
-</Step>
-
-<Step title="Place in your layout">
-
-Add `<MyWidget />` wherever you want the widget to appear.
-
-For Next.js App Router, the `'use client'` directive is already included above — `Trigger` is a client component.
-
-<Tip>
-The component renders `null` during SSR, so there are no hydration mismatch issues.
-</Tip>
+The Trigger component handles the entire Turnkey signing flow automatically. When a user initiates an action, the widget calls `POST /transactions/prepare` to get an unsigned transaction, prompts the user with a passkey biometric challenge via Turnkey, and then calls `POST /transactions/confirm` with the signed result.
 
 </Step>
 
-<Step title="Verify">
+<Step title="User signs with passkey">
 
-Start your dev server and navigate to the page. The Trigger card should appear showing the blockchain action title, description, and action buttons.
+The widget renders a biometric prompt (Face ID, fingerprint, or security key). The signing happens in the Turnkey enclave — the private key never leaves the secure environment. No additional code is needed on your side.
 
-If you see a loading skeleton briefly, that is expected — the component fetches metadata on mount.
+</Step>
+
+<Step title="Transaction confirmation">
+
+After the user signs, the widget automatically submits the signed transaction to Relayer for broadcast. The widget shows a success state with the transaction hash.
 
 </Step>
 
 </Steps>
+
+<Tip>
+In Turnkey Mode, the Trigger component manages the full prepare -> sign -> confirm lifecycle. You only need to provide the adapter and the action URL.
+</Tip>
+
+## Metadata Mode Integration
+
+In Metadata Mode, the widget handles UI and user input, but signing is delegated to your infrastructure. You receive transaction metadata (routing, calldata, gas estimates) and handle signing and broadcast yourself.
+
+<Steps>
+
+<Step title="Render the Trigger">
+
+The Trigger renders the same UI as Turnkey Mode. Provide a wallet adapter and action URL:
+
+```tsx src/components/SwapWidget.tsx
+'use client';
+import { useWagmiAdapter, Trigger } from '@relayer-fi/widgets';
+
+export function SwapWidget() {
+  const adapter = useWagmiAdapter();
+  return (
+    <Trigger
+      adapter={adapter}
+      url="https://api.relayer.fi/v1/action/swap/metadata"
+    />
+  );
+}
+```
+
+The Trigger renders the same UI, but in Metadata Mode the signing step is delegated to your infrastructure.
+
+</Step>
+
+<Step title="Handle transaction metadata">
+
+When your integrator is configured for Metadata Mode, the Relayer API returns routing and calldata instead of broadcasting:
+
+```typescript
+const response = await fetch('https://api.relayer.fi/v1/protocols/swap/uniswap/prepare/quote', {
+  method: 'POST',
+  headers: {
+    'Authorization': `ApiKey ${apiKey}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    tokenIn: '0xA0b86a33E6417C8D7648D5b1D6fF0F6dB6c15b2a', // USDC
+    tokenOut: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
+    amount: '1000000', // 1 USDC (6 decimals)
+    chain: 'ethereum',
+  }),
+});
+const { routing, calldata, gasEstimate } = await response.json();
+
+// Build and sign with your own wallet infrastructure
+const tx = buildTransaction(routing, calldata, gasEstimate);
+const signedTx = await yourSigner.signTransaction(tx);
+const txHash = await yourProvider.sendTransaction(signedTx);
+```
+
+</Step>
+
+<Step title="Broadcast">
+
+You are responsible for broadcasting the signed transaction to the blockchain. Use your own RPC provider or infrastructure.
+
+</Step>
+
+</Steps>
+
+<Note>
+In Metadata Mode, the widget UI still renders action cards and handles user input. The difference is in how signing is handled — your backend receives the transaction parameters instead of Turnkey.
+</Note>
+
+## Widget Examples
+
+Each widget type connects to a different protocol backend. All examples use the same Trigger component pattern — only the action URL differs.
+
+<Tabs>
+  <Tab title="Swap">
+
+```tsx
+import { useWagmiAdapter, Trigger } from '@relayer-fi/widgets';
+
+export function SwapWidget() {
+  const adapter = useWagmiAdapter();
+  return (
+    <Trigger
+      adapter={adapter}
+      url="https://api.relayer.fi/v1/action/swap/metadata"
+    />
+  );
+}
+```
+
+Swap widget connects to Uniswap V4 for token-to-token swaps. Supports all chains where Uniswap is deployed.
+
+  </Tab>
+  <Tab title="Earn">
+
+```tsx
+import { useWagmiAdapter, Trigger } from '@relayer-fi/widgets';
+
+export function EarnWidget() {
+  const adapter = useWagmiAdapter();
+  return (
+    <Trigger
+      adapter={adapter}
+      url="https://api.relayer.fi/v1/action/earn/metadata"
+    />
+  );
+}
+```
+
+Earn widget connects to Aave for deposit and withdraw operations on lending positions.
+
+  </Tab>
+  <Tab title="Transfer">
+
+```tsx
+import { useWagmiAdapter, Trigger } from '@relayer-fi/widgets';
+
+export function TransferWidget() {
+  const adapter = useWagmiAdapter();
+  return (
+    <Trigger
+      adapter={adapter}
+      url="https://api.relayer.fi/v1/action/transfer/metadata"
+    />
+  );
+}
+```
+
+Transfer widget handles native token and ERC20 transfers.
+
+  </Tab>
+  <Tab title="Payment">
+
+```tsx
+import { useWagmiAdapter, Trigger } from '@relayer-fi/widgets';
+
+export function PaymentWidget() {
+  const adapter = useWagmiAdapter();
+  return (
+    <Trigger
+      adapter={adapter}
+      url="https://api.relayer.fi/v1/action/payment/metadata"
+    />
+  );
+}
+```
+
+Payment widget provides a composite payment acceptance flow combining multiple transaction types.
+
+  </Tab>
+</Tabs>
+
+## Embedder: End-User Onboarding
+
+For Embedder integrators using Turnkey Mode, each end user gets their own wallet and passkey. The onboarding flow:
+
+<Steps>
+
+<Step title="User registers passkey">
+
+When a new end user first interacts with a widget, they are prompted to create a passkey (biometric or security key). This registers a WebAuthn credential tied to your application's Turnkey sub-organization.
+
+</Step>
+
+<Step title="Wallet creation">
+
+A wallet is automatically created in the user's Turnkey sub-organization. The private key is generated and stored in the Turnkey enclave — neither you nor Relayer can access it.
+
+</Step>
+
+<Step title="Subsequent transactions">
+
+For future transactions, the user simply approves with their passkey. No seed phrases, no browser extensions.
+
+</Step>
+
+</Steps>
+
+<Warning>
+Passkey recovery is available through Turnkey's email recovery flow. Ensure you communicate recovery options to your users during onboarding.
+</Warning>
+
+<Tip>
+For operator-level integrations (not end-user facing), team members register passkeys through the Relayer dashboard. Policies define which team members can approve which transaction types.
+</Tip>
 
 ## TriggerProps Reference
 
