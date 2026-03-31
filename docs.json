@@ -24,7 +24,7 @@
             ]
           },
           {
-            "group": "Shared",
+            "group": "Reference",
             "pages": [
               "shared/architecture",
               "shared/glossary",
@@ -76,7 +76,7 @@
         "tab": "Action Kit",
         "groups": [
           {
-            "group": "Action Kit",
+            "group": "Action Kit (Widgets)",
             "pages": [
               "action/overview",
               "action/flow-guide",
@@ -109,10 +109,171 @@
             ]
           },
           {
-            "group": "API Endpoints",
+            "group": "Exchange",
             "openapi": {
               "source": "api-reference/openapi.json",
-              "directory": "api-reference"
+              "directory": "api-reference",
+              "tag": "Exchange"
+            }
+          },
+          {
+            "group": "Wallets",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Wallets"
+            }
+          },
+          {
+            "group": "Transactions",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Transactions"
+            }
+          },
+          {
+            "group": "Signing Policies",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Signing Policies"
+            }
+          },
+          {
+            "group": "Passkeys",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Signing - Passkeys"
+            }
+          },
+          {
+            "group": "Signing Approvals",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Signing Approvals"
+            }
+          },
+          {
+            "group": "Payout Rails",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Payout: Rails"
+            }
+          },
+          {
+            "group": "Payout Accounts",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Payout: Accounts"
+            }
+          },
+          {
+            "group": "Payout Recipients",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Payout: Recipients"
+            }
+          },
+          {
+            "group": "Widgets",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Action"
+            }
+          },
+          {
+            "group": "Widget Builders",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Action: Builders"
+            }
+          },
+          {
+            "group": "Widget Directory",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Action: Directory"
+            }
+          },
+          {
+            "group": "Widget Tokens",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Action: Tokens"
+            }
+          },
+          {
+            "group": "Integrators",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Integrators"
+            }
+          },
+          {
+            "group": "Team",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Team"
+            }
+          },
+          {
+            "group": "Modules",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Modules"
+            }
+          },
+          {
+            "group": "API Keys",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "API Keys"
+            }
+          },
+          {
+            "group": "App",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "App"
+            }
+          },
+          {
+            "group": "Auth",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Auth"
+            }
+          },
+          {
+            "group": "Protocols: Swap",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Protocols: Swap"
+            }
+          },
+          {
+            "group": "Protocols: Lending",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Protocols: Lending"
             }
           }
         ]
@@ -127,7 +288,7 @@
         },
         {
           "anchor": "GitHub",
-          "href": "https://github.com/SherryLabs",
+          "href": "https://github.com/relayerfi",
           "icon": "github"
         }
       ]
@@ -159,8 +320,8 @@
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/sherrylabs",
-      "github": "https://github.com/SherryLabs"
+      "x": "https://x.com/RelayerProtocol",
+      "github": "https://github.com/relayerfi"
     }
   },
   "redirects": [

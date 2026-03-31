@@ -66,7 +66,7 @@ sequenceDiagram
     participant Kit as Kit Module
     participant Infra as External Service
 
-    App->>API: POST /v1/{kit}/{resource}<br/>Authorization: ApiKey sk_...
+    App->>API: POST /v1/{kit}/{resource}<br/>Authorization: ApiKey rk_...
     API->>API: Validate API key + RBAC
     API->>Kit: Route to Kit module
     Kit->>Infra: Call external service (if needed)
@@ -80,7 +80,7 @@ sequenceDiagram
 All requests authenticate with an operator API key in the `Authorization` header:
 
 ```
-Authorization: ApiKey sk_client_key_v1_your_key_here
+Authorization: ApiKey rk_client_key_v1_your_key_here
 ```
 
 The API key identifies the operator and determines which Kits and resources are accessible based on the operator's module configuration and team role permissions (v2.0+).
@@ -89,7 +89,7 @@ The API key identifies the operator and determines which Kits and resources are 
 
 | Environment | Base URL | Use |
 |-------------|----------|-----|
-| Sandbox | `https://relayer-api.onrender.com` | Development and testing |
+| Sandbox | `https://sandbox.relayer.fi` | Development and testing |
 | Production | `https://api.relayer.fi` | Live operations |
 
 All Kit endpoints and authentication patterns are identical across environments.

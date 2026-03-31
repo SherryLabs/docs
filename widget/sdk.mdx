@@ -1,13 +1,13 @@
 ---
-title: "sherry-sdk"
+title: "Relayer SDK"
 description: "TypeScript SDK for building blockchain action metadata — works identically in both Turnkey Mode and Metadata Mode"
-sidebarTitle: "sherry-sdk"
+sidebarTitle: "Relayer SDK"
 ---
 
-The sherry-sdk (`@sherrylinks/sdk`) is the TypeScript library for building blockchain action metadata. It defines the action schema, validates metadata before submission, and provides template helpers for common parameter types. Use it to create the metadata object that powers a Relayer Trigger.
+The Relayer SDK (`@sherrylinks/sdk`) is the TypeScript library for building blockchain action metadata. It defines the action schema, validates metadata before submission, and provides template helpers for common parameter types. Use it to create the metadata object that powers a Relayer Trigger.
 
 <Note>
-The sherry-sdk metadata layer is **mode-agnostic**. Whether your integration uses Turnkey Mode (passkey signing) or Metadata Mode (bring your own wallet), the metadata schema and validation are identical. The SDK defines *what* action to perform — the integration mode determines *how* signing happens.
+The Relayer SDK metadata layer is **mode-agnostic**. Whether your integration uses Turnkey Mode (passkey signing) or Metadata Mode (bring your own wallet), the metadata schema and validation are identical. The SDK defines *what* action to perform — the integration mode determines *how* signing happens.
 </Note>
 
 ## Install
@@ -160,7 +160,7 @@ const tokenParam = createParameter(PARAM_TEMPLATES.TOKEN_SELECT, {
 
 ## Debug Your Trigger
 
-Use the [Sherry Debugger](https://app.sherry.social/debugger) to test and preview blockchain action metadata before embedding. Paste your metadata JSON or URL and see the rendered Trigger in real time.
+Use the [Relayer Debugger](https://app.relayer.fi/debugger) to test and preview blockchain action metadata before embedding. Paste your metadata JSON or URL and see the rendered Trigger in real time.
 
 ## Next Steps
 

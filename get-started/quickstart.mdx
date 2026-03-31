@@ -17,7 +17,7 @@ Relayer provides two environments. Choose the one that matches your stage:
 
 | Environment | Base URL | Use for |
 |-------------|----------|---------|
-| **Sandbox** | `https://relayer-api.onrender.com` | Testing and development |
+| **Sandbox** | `https://sandbox.relayer.fi` | Testing and development |
 | **Production** | `https://api.relayer.fi` | Live operations |
 
 <Warning>
@@ -33,11 +33,11 @@ Start with the health check endpoint. It requires no authentication and confirms
     <CodeGroup>
 
     ```bash cURL
-    curl https://relayer-api.onrender.com/health
+    curl https://sandbox.relayer.fi/health
     ```
 
     ```typescript Node.js
-    const response = await fetch("https://relayer-api.onrender.com/health");
+    const response = await fetch("https://sandbox.relayer.fi/health");
     const data = await response.json();
     console.log(data);
     // Expected: { "status": "ok" }
@@ -80,13 +80,13 @@ Store your API key and base URL as environment variables:
     <CodeGroup>
 
     ```bash Terminal
-    export RELAYER_BASE_URL="https://relayer-api.onrender.com"
-    export RELAYER_API_KEY="sk_client_key_v1_your_key_here"
+    export RELAYER_BASE_URL="https://sandbox.relayer.fi"
+    export RELAYER_API_KEY="rk_client_key_v1_your_key_here"
     ```
 
     ```text .env file
-    RELAYER_BASE_URL=https://relayer-api.onrender.com
-    RELAYER_API_KEY=sk_client_key_v1_your_key_here
+    RELAYER_BASE_URL=https://sandbox.relayer.fi
+    RELAYER_API_KEY=rk_client_key_v1_your_key_here
     ```
 
     </CodeGroup>
@@ -96,12 +96,12 @@ Store your API key and base URL as environment variables:
 
     ```bash Terminal
     export RELAYER_BASE_URL="https://api.relayer.fi"
-    export RELAYER_API_KEY="sk_client_key_v1_your_production_key"
+    export RELAYER_API_KEY="rk_client_key_v1_your_production_key"
     ```
 
     ```text .env file
     RELAYER_BASE_URL=https://api.relayer.fi
-    RELAYER_API_KEY=sk_client_key_v1_your_production_key
+    RELAYER_API_KEY=rk_client_key_v1_your_production_key
     ```
 
     </CodeGroup>
@@ -183,7 +183,7 @@ Now that you are authenticated, explore the Kit that matches your use case:
 
 | Problem | Solution |
 |---------|----------|
-| `Connection refused` | Check `RELAYER_BASE_URL` — sandbox: `https://relayer-api.onrender.com`, production: `https://api.relayer.fi` |
+| `Connection refused` | Check `RELAYER_BASE_URL` — sandbox: `https://sandbox.relayer.fi`, production: `https://api.relayer.fi` |
 | `401 Unauthorized` | Verify your `Authorization` header uses `ApiKey` prefix (not `Bearer`) |
 | `404 Not Found` | Check the endpoint path starts with `/v1/` |
 | Slow first response | Sandbox cold-starts after idle (30-60s). Production does not have this delay. |

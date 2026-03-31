@@ -11,7 +11,7 @@ Every request to the Relayer API requires an API key. This guide covers how to g
 You receive your API key when your operator account is created in the Relayer dashboard. Keys follow this format:
 
 ```
-sk_client_key_v1_your_key_here...
+rk_client_key_v1_your_key_here...
 ```
 
 <Warning>
@@ -24,7 +24,7 @@ Relayer provides two environments:
 
 | Environment | Base URL | Purpose |
 |-------------|----------|---------|
-| **Sandbox** | `https://relayer-api.onrender.com` | Testing and development |
+| **Sandbox** | `https://sandbox.relayer.fi` | Testing and development |
 | **Production** | `https://api.relayer.fi` | Live operations |
 
 Both environments use the same API key format and endpoints. Use the sandbox for development and switch to production when you are ready to go live.
@@ -34,24 +34,24 @@ Both environments use the same API key format and endpoints. Use the sandbox for
 Pass your API key in the `Authorization` header using the `ApiKey` scheme:
 
 ```
-Authorization: ApiKey sk_client_key_v1_your_key_here
+Authorization: ApiKey rk_client_key_v1_your_key_here
 ```
 
 <CodeGroup>
 
 ```bash cURL
-curl -X GET https://relayer-api.onrender.com/v1/exchange/quotes \
-  -H "Authorization: ApiKey sk_client_key_v1_your_key_here" \
+curl -X GET https://sandbox.relayer.fi/v1/exchange/quotes \
+  -H "Authorization: ApiKey rk_client_key_v1_your_key_here" \
   -H "Content-Type: application/json"
 ```
 
 ```typescript JavaScript / TypeScript
 const response = await fetch(
-  "https://relayer-api.onrender.com/v1/exchange/quotes",
+  "https://sandbox.relayer.fi/v1/exchange/quotes",
   {
     method: "GET",
     headers: {
-      "Authorization": "ApiKey sk_client_key_v1_your_key_here",
+      "Authorization": "ApiKey rk_client_key_v1_your_key_here",
       "Content-Type": "application/json",
     },
   }
@@ -102,7 +102,7 @@ All API responses use a consistent envelope:
 | `404` | Not Found | API key does not exist |
 
 <Tip>
-  If you receive a `401` error, verify that your `Authorization` header uses the exact format `ApiKey sk_client_key_v1_...` -- the `ApiKey` prefix is required.
+  If you receive a `401` error, verify that your `Authorization` header uses the exact format `ApiKey rk_client_key_v1_...` -- the `ApiKey` prefix is required.
 </Tip>
 
 ## Security Best Practices

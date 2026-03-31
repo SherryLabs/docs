@@ -9488,7 +9488,7 @@
       "description": "Development server"
     },
     {
-      "url": "https://relayer-api.onrender.com/v1",
+      "url": "https://sandbox.relayer.fi/v1",
       "description": "Sandbox server"
     }
   ],
