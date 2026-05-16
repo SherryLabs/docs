@@ -1,47 +1,47 @@
 ---
 title: "Integration Guide"
-description: "Integrate widgets using Turnkey Mode (passkey signing) or Metadata Mode (bring your own wallet) — with examples for Swap, Earn, Transfer, and Payment"
+description: "Integrate widgets using Passkey Signing (passkey) or Metadata Mode (bring your own wallet) — with examples for Swap, Transfer, and Crosschain"
 sidebarTitle: "Integration Guide"
 ---
 
-This guide covers two integration paths: Turnkey Mode where the widget handles passkey-based signing through Turnkey, and Metadata Mode where you receive transaction metadata to sign with your own infrastructure. Both modes use the same Trigger component.
+This guide covers two integration paths: **Passkey Signing** where the widget handles passkey-based signing for you, and **Metadata Mode** where you receive transaction metadata to sign with your own stack. Both modes use the same Widget component.
 
 <Info>
 **Prerequisites:** wagmi providers configured per [Installation](/widget/installation). An understanding of your integration mode — see the [Overview](/widget/overview) for architecture details.
 </Info>
 
-## Turnkey Mode Integration
+## Passkey Signing Integration
 
-In Turnkey Mode, the widget manages the full transaction lifecycle: prepare, sign via passkey, and confirm. You provide a wallet adapter and an action URL.
+In Passkey Signing, the widget manages the full transaction lifecycle: prepare, sign via passkey, and confirm. You provide a wallet adapter and an action URL or widget ID.
 
 <Steps>
 
 <Step title="Create the adapter">
 
-Use the `useWagmiAdapter` hook and render a `Trigger` with your action URL:
+Use the `useWagmiAdapter` hook and render a `Widget` with your action URL:
 
 ```tsx src/components/SwapWidget.tsx
 'use client';
-import { useWagmiAdapter, Trigger } from '@relayer-fi/widgets';
+import { useWagmiAdapter, Widget } from '@relayerfi/widget-kit-react';
 
 export function SwapWidget() {
   const adapter = useWagmiAdapter();
   return (
-    <Trigger
+    <Widget
       adapter={adapter}
-      url="https://api.relayer.fi/v1/action/swap/metadata"
+      url="https://api.relayer.fi/v1/action/{widgetId}/metadata"
     />
   );
 }
 ```
 
-The Trigger component handles the entire Turnkey signing flow automatically. When a user initiates an action, the widget calls `POST /transactions/prepare` to get an unsigned transaction, prompts the user with a passkey biometric challenge via Turnkey, and then calls `POST /transactions/confirm` with the signed result.
+The Widget component handles the entire signing flow automatically. When a user initiates an action, the widget calls `POST /v1/transactions/prepare` to get an unsigned transaction, prompts the user with a passkey biometric challenge, and then calls `POST /v1/transactions/confirm` with the signed result.
 
 </Step>
 
 <Step title="User signs with passkey">
 
-The widget renders a biometric prompt (Face ID, fingerprint, or security key). The signing happens in the Turnkey enclave — the private key never leaves the secure environment. No additional code is needed on your side.
+The widget renders a biometric prompt (Face ID, fingerprint, or security key). Signing happens inside a secure enclave — the private key never leaves the hardware-protected environment. No additional code is needed on your side.
 
 </Step>
 
@@ -54,55 +54,48 @@ After the user signs, the widget automatically submits the signed transaction to
 </Steps>
 
 <Tip>
-In Turnkey Mode, the Trigger component manages the full prepare -> sign -> confirm lifecycle. You only need to provide the adapter and the action URL.
+In Passkey Signing, the Widget component manages the full prepare → sign → confirm lifecycle. You only need to provide the adapter and the action URL.
 </Tip>
 
 ## Metadata Mode Integration
 
-In Metadata Mode, the widget handles UI and user input, but signing is delegated to your infrastructure. You receive transaction metadata (routing, calldata, gas estimates) and handle signing and broadcast yourself.
+In Metadata Mode, the widget handles UI and user input, but signing is delegated to your stack. You receive transaction metadata (routing, calldata, gas estimates) and handle signing and broadcast yourself.
 
 <Steps>
 
-<Step title="Render the Trigger">
+<Step title="Render the Widget">
 
-The Trigger renders the same UI as Turnkey Mode. Provide a wallet adapter and action URL:
+The Widget renders the same UI as Passkey Signing. Provide a wallet adapter and action URL:
 
 ```tsx src/components/SwapWidget.tsx
 'use client';
-import { useWagmiAdapter, Trigger } from '@relayer-fi/widgets';
+import { useWagmiAdapter, Widget } from '@relayerfi/widget-kit-react';
 
 export function SwapWidget() {
   const adapter = useWagmiAdapter();
   return (
-    <Trigger
+    <Widget
       adapter={adapter}
-      url="https://api.relayer.fi/v1/action/swap/metadata"
+      url="https://api.relayer.fi/v1/action/{widgetId}/metadata"
     />
   );
 }
 ```
 
-The Trigger renders the same UI, but in Metadata Mode the signing step is delegated to your infrastructure.
+The Widget renders the same UI, but in Metadata Mode the signing step is delegated to your infrastructure.
 
 </Step>
 
 <Step title="Handle transaction metadata">
 
-When your integrator is configured for Metadata Mode, the Relayer API returns routing and calldata instead of broadcasting:
+When your integrator is configured for Metadata Mode, the Relayer API returns routing and calldata for your application to sign:
 
 ```typescript
-const response = await fetch('https://api.relayer.fi/v1/protocols/swap/uniswap/prepare/quote', {
-  method: 'POST',
+const response = await fetch('https://api.relayer.fi/v1/action/execute/swap/quote', {
+  method: 'GET',
   headers: {
     'Authorization': `ApiKey ${apiKey}`,
-    'Content-Type': 'application/json',
   },
-  body: JSON.stringify({
-    tokenIn: '0xA0b86a33E6417C8D7648D5b1D6fF0F6dB6c15b2a', // USDC
-    tokenOut: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
-    amount: '1000000', // 1 USDC (6 decimals)
-    chain: 'ethereum',
-  }),
 });
 const { routing, calldata, gasEstimate } = await response.json();
 
@@ -123,107 +116,107 @@ You are responsible for broadcasting the signed transaction to the blockchain. U
 </Steps>
 
 <Note>
-In Metadata Mode, the widget UI still renders action cards and handles user input. The difference is in how signing is handled — your backend receives the transaction parameters instead of Turnkey.
+In Metadata Mode, the widget UI still renders action cards and handles user input. The difference is in how signing is handled — your backend receives the transaction parameters instead of completing the flow inside the widget.
 </Note>
 
 ## Widget Examples
 
-Each widget type connects to a different protocol backend. All examples use the same Trigger component pattern — only the action URL differs.
+Widget Kit ships first-party widgets for the canonical protocols Relayer supports. All examples use the same Widget component pattern — only the action URL differs.
 
 <Tabs>
   <Tab title="Swap">
 
 ```tsx
-import { useWagmiAdapter, Trigger } from '@relayer-fi/widgets';
+import { useWagmiAdapter, Widget } from '@relayerfi/widget-kit-react';
 
 export function SwapWidget() {
   const adapter = useWagmiAdapter();
   return (
-    <Trigger
+    <Widget
       adapter={adapter}
-      url="https://api.relayer.fi/v1/action/swap/metadata"
+      url="https://api.relayer.fi/v1/action/{widgetId}/metadata"
     />
   );
 }
 ```
 
-Swap widget connects to Uniswap V4 for token-to-token swaps. Supports all chains where Uniswap is deployed.
-
-  </Tab>
-  <Tab title="Earn">
-
-```tsx
-import { useWagmiAdapter, Trigger } from '@relayer-fi/widgets';
-
-export function EarnWidget() {
-  const adapter = useWagmiAdapter();
-  return (
-    <Trigger
-      adapter={adapter}
-      url="https://api.relayer.fi/v1/action/earn/metadata"
-    />
-  );
-}
-```
-
-Earn widget connects to Aave for deposit and withdraw operations on lending positions.
+Swap widget renders a token-to-token swap card. Backed by `POST /v1/action/builders/swap` and executed via `/v1/action/execute/swap/*`.
 
   </Tab>
   <Tab title="Transfer">
 
 ```tsx
-import { useWagmiAdapter, Trigger } from '@relayer-fi/widgets';
+import { useWagmiAdapter, Widget } from '@relayerfi/widget-kit-react';
 
 export function TransferWidget() {
   const adapter = useWagmiAdapter();
   return (
-    <Trigger
+    <Widget
       adapter={adapter}
-      url="https://api.relayer.fi/v1/action/transfer/metadata"
+      url="https://api.relayer.fi/v1/action/{widgetId}/metadata"
     />
   );
 }
 ```
 
-Transfer widget handles native token and ERC20 transfers.
+Transfer widget handles native token and ERC20 transfers. Backed by `POST /v1/action/builders/transfer-native`.
 
   </Tab>
-  <Tab title="Payment">
+  <Tab title="Crosschain Transfer">
 
 ```tsx
-import { useWagmiAdapter, Trigger } from '@relayer-fi/widgets';
+import { useWagmiAdapter, Widget } from '@relayerfi/widget-kit-react';
 
-export function PaymentWidget() {
+export function CrosschainTransferWidget() {
   const adapter = useWagmiAdapter();
   return (
-    <Trigger
+    <Widget
       adapter={adapter}
-      url="https://api.relayer.fi/v1/action/payment/metadata"
+      url="https://api.relayer.fi/v1/action/{widgetId}/metadata"
     />
   );
 }
 ```
 
-Payment widget provides a composite payment acceptance flow combining multiple transaction types.
+Crosschain transfer widget moves the same asset across supported networks. Backed by `POST /v1/action/builders/crosschain-transfer`.
+
+  </Tab>
+  <Tab title="Crosschain Bridge">
+
+```tsx
+import { useWagmiAdapter, Widget } from '@relayerfi/widget-kit-react';
+
+export function BridgeWidget() {
+  const adapter = useWagmiAdapter();
+  return (
+    <Widget
+      adapter={adapter}
+      url="https://api.relayer.fi/v1/action/{widgetId}/metadata"
+    />
+  );
+}
+```
+
+Bridge widget moves assets between supported chains. Backed by `POST /v1/action/builders/crosschain-bridge`.
 
   </Tab>
 </Tabs>
 
 ## Embedder: End-User Onboarding
 
-For Embedder integrators using Turnkey Mode, each end user gets their own wallet and passkey. The onboarding flow:
+For Embedder integrators using Passkey Signing, each end user gets their own wallet and passkey. The onboarding flow:
 
 <Steps>
 
 <Step title="User registers passkey">
 
-When a new end user first interacts with a widget, they are prompted to create a passkey (biometric or security key). This registers a WebAuthn credential tied to your application's Turnkey sub-organization.
+When a new end user first interacts with a widget, they are prompted to create a passkey (biometric or security key). This registers a WebAuthn credential tied to your application's wallet workspace.
 
 </Step>
 
 <Step title="Wallet creation">
 
-A wallet is automatically created in the user's Turnkey sub-organization. The private key is generated and stored in the Turnkey enclave — neither you nor Relayer can access it.
+A wallet is automatically created in the user's workspace. The private key is generated and stored inside a hardware-secured enclave — neither you nor Relayer can access it.
 
 </Step>
 
@@ -236,21 +229,21 @@ For future transactions, the user simply approves with their passkey. No seed ph
 </Steps>
 
 <Warning>
-Passkey recovery is available through Turnkey's email recovery flow. Ensure you communicate recovery options to your users during onboarding.
+Passkey recovery is available through Relayer's email recovery flow (`POST /v1/signing/recovery/initiate`). Ensure you communicate recovery options to your users during onboarding.
 </Warning>
 
 <Tip>
-For operator-level integrations (not end-user facing), team members register passkeys through the Relayer dashboard. Policies define which team members can approve which transaction types.
+For workspace-level integrations (not end-user facing), team members register passkeys through the Relayer dashboard. Policies define which team members can approve which transaction types.
 </Tip>
 
-## TriggerProps Reference
+## WidgetProps Reference
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| `adapter` | `SherryAdapter` | Yes | Wallet adapter — use `useWagmiAdapter()` or `createWagmiAdapter(config)` |
-| `url` | `string` | Yes* | URL to fetch blockchain action metadata from |
+| `adapter` | `WidgetAdapter` | Yes | Wallet adapter — use `useWagmiAdapter()` or `createWagmiAdapter(config)` |
+| `url` | `string` | Yes* | URL to fetch widget metadata from |
 | `metadata` | `ValidatedMetadata` | Yes* | Pass pre-validated metadata instead of `url` |
-| `securityState` | `TriggerSecurityState` | Yes (with `metadata`) | Security context for pre-validated flow |
+| `securityState` | `WidgetSecurityState` | Yes (with `metadata`) | Security context for pre-validated flow |
 | `stylePreset` | `'x' \| undefined` | No | Apply Twitter/X visual preset |
 | `enableAnalytics` | `boolean` | No | Track interaction events (default: `true`) |
 | `player` | `boolean` | No | Enable player mode for embedded contexts |
@@ -270,7 +263,7 @@ Widgets read `data-x-theme="dark|light"` from the document root to determine the
 Call `applyXTheme()` once on mount to read the Twitter/X night mode cookie and set the theme attribute automatically:
 
 ```typescript
-import { applyXTheme } from '@relayer-fi/widgets';
+import { applyXTheme } from '@relayerfi/widget-kit-react';
 
 // Call once on mount
 applyXTheme();
@@ -281,11 +274,11 @@ applyXTheme();
 Use the `useTheme` hook to read the current theme in your components:
 
 ```typescript
-import { useTheme } from '@relayer-fi/widgets';
+import { useTheme } from '@relayerfi/widget-kit-react';
 
 function MyComponent() {
   const theme = useTheme(); // 'dark' | 'light'
-  return <div data-theme={theme}><Trigger ... /></div>;
+  return <div data-theme={theme}><Widget ... /></div>;
 }
 ```
 
@@ -299,21 +292,21 @@ document.documentElement.setAttribute('data-x-theme', 'dark');
 
 ## Twitter/X stylePreset
 
-Pass `stylePreset="x"` to apply the Twitter/X visual preset — rounded card, correct font sizing, consistent with the embedded trigger appearance on social platforms:
+Pass `stylePreset="x"` to apply the Twitter/X visual preset — rounded card, correct font sizing, consistent with the embedded appearance on social platforms:
 
 ```tsx
-<Trigger adapter={adapter} url={url} stylePreset="x" />
+<Widget adapter={adapter} url={url} stylePreset="x" />
 ```
 
 ## Platform Observers
 
-The library ships observers for automatic trigger detection on Twitter/X, YouTube, and Twitch. These observers scan the DOM for blockchain action URLs and render Trigger components inline. For custom embedding in your own app, use the `Trigger` component directly as shown above. See the [Widget Kit Overview](/widget/overview) for architecture details.
+The library ships observers for automatic widget detection on Twitter/X, YouTube, and Twitch. These observers scan the DOM for canonical action URLs and render Widget components inline. For custom embedding in your own app, use the `Widget` component directly as shown above. See the [Widget Kit Overview](/widget/overview) for architecture details.
 
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Relayer SDK" icon="code" href="/widget/sdk">
-    Build blockchain action metadata to power your Triggers.
+  <Card title="SDK Reference" icon="code" href="/widget/sdk">
+    The metadata schema for canonical protocols.
   </Card>
   <Card title="Widget Kit Overview" icon="layer-group" href="/widget/overview">
     Package ecosystem and architecture.

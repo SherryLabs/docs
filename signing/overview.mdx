@@ -1,6 +1,6 @@
 ---
 title: "Signing Kit"
-description: "Wallet creation, escrow accounts, and transaction signing powered by Turnkey"
+description: "Self-custodial wallets, transaction prepare/confirm, and passkey-based signing"
 sidebarTitle: "Overview"
 ---
 
@@ -8,13 +8,13 @@ sidebarTitle: "Overview"
   The Signing Kit manages cryptographic private keys and submits transactions to live blockchain networks. Signed transactions and broadcasts are irreversible. Always verify destination addresses and amounts before signing or broadcasting.
 </Warning>
 
-The Signing Kit gives operators secure wallet infrastructure backed by [Turnkey](https://turnkey.com) — a key management service that stores private keys in hardware-secured enclaves. You create wallets, generate addresses, set signing policies, and sign or broadcast transactions — all without handling raw private keys.
+The Signing Kit gives operators a self-custodial wallet stack with passkey-based signing. You create wallets, generate addresses, set signing policies, and sign or broadcast transactions — **Relayer never holds or has access to your raw private keys**. Signing happens inside a hardware-secured enclave, gated by a passkey biometric prompt on the user's device.
 
 ## Core Concepts
 
 ### Wallets and Addresses
 
-A **wallet** in the Signing Kit maps to a Turnkey sub-organization. Each wallet can generate multiple addresses across different networks (Ethereum, Polygon, etc.).
+A **wallet** is the root container for a set of derived addresses. Each wallet can generate multiple addresses across different networks (Ethereum, Polygon, Solana, etc.).
 
 ```mermaid
 graph TD
@@ -29,61 +29,51 @@ graph TD
 - Addresses are deterministically derived (HD wallet)
 - Network is specified per address
 
-### Escrow Wallets
+### Prepare / Confirm Signing
 
-An escrow wallet is a Signing Kit wallet used to temporarily hold funds during an OTC trade or payout flow. The Exchange Kit automatically uses escrow wallets between when cash is received and when crypto is released.
+Signing is a two-step flow so the private key material never has to leave the secure enclave:
 
-From the Signing Kit's perspective, an escrow wallet is an ordinary wallet — you create it, generate an address, and the Exchange Kit handles the lifecycle.
+1. **Prepare** — `POST /v1/transactions/prepare` returns an unsigned transaction payload
+2. **Confirm** — the user stamps it with their passkey, then `POST /v1/transactions/confirm` validates the stamped activity and signs
 
-### Transaction Signing
-
-The Signing Kit separates two concerns:
-
-1. **Signing** — creates a signed transaction payload (`/transactions/sign/*`)
-2. **Broadcasting** — submits the signed payload to the network (`/transactions/broadcast/*`)
-
-You can sign a transaction without broadcasting it immediately. This is useful for multi-step approval flows.
-
-**Supported transaction types:**
-- Native token transfers (ETH, MATIC, BNB, etc.) via `/transactions/sign/transfer/native`
-- ERC20 token transfers via `/transactions/sign/transfer/token`
-- Generic transactions (custom calldata) via `/transactions/sign`
+You can sign without broadcasting immediately. Broadcasting is a separate step (`POST /v1/transactions/broadcast/{id}`) so multi-step approval flows can gate the final submission.
 
 ### Signing Policies
 
-A signing policy is a set of rules attached to a wallet or integrator that controls which transactions Turnkey will sign. Policies can restrict:
+A signing policy is a set of rules attached to a wallet or workspace that controls which transactions can be signed. Policies can restrict:
 
 - **Value limits** — maximum transaction value in USD or token amount
-- **Destination addresses** — allowlist or denylist of recipient addresses
+- **Destination addresses** — allowlist or denylist of recipients
 - **Token types** — which tokens are permitted to transfer
 - **Time windows** — signing only allowed during certain hours
 
-Policies are enforced at the Turnkey level, before the transaction reaches the blockchain.
+Policies are enforced **before** the signing enclave processes the transaction. A transaction that violates policy never gets signed.
 
 ### Approval Flows
 
-For high-value or sensitive operations, you can require human approval before a transaction is signed. Configure an approval threshold via `/v1/signing/approval-config`. Transactions above the threshold enter a pending approval queue (`/v1/signing/approvals`) where an authorized team member must approve or reject.
+For high-value or sensitive operations, you can require human approval before a transaction is signed. Configure an approval threshold via `PATCH /v1/signing/approval-config`. Transactions above the threshold enter a pending approval queue (`GET /v1/signing/approvals`) where an authorized team member stamps approval with their passkey (`POST /v1/signing/approvals/{id}/approve-with-passkey`).
 
-### Integrators
+### Recovery
 
-An integrator is a sub-account within your operator that can have its own wallets, API keys, and signing policies. Use integrators to isolate wallets per client, product line, or environment.
+If a user loses access to their passkey, the Signing Kit supports an email-based recovery flow (`POST /v1/signing/recovery/initiate`). Recovery re-binds a new passkey to the existing wallet without rotating the underlying keys.
 
 ## Endpoint Summary
 
 | Group | Endpoints | Purpose |
 |-------|-----------|---------|
-| Wallets | `POST /v1/wallets`, `GET /v1/wallets/{id}` | Create and manage wallets |
-| Addresses | `POST /v1/wallets/{id}/addresses` | Generate wallet addresses |
-| Sign | `POST /v1/transactions/sign/transfer/native` | Sign transactions |
+| Wallets | `POST /v1/signing/wallets/prepare`, `POST /v1/signing/wallets/confirm` | Create wallets with passkey |
+| Addresses | `POST /v1/signing/wallets/{id}/addresses` | Generate wallet addresses |
+| Sign | `POST /v1/transactions/prepare`, `POST /v1/transactions/confirm` | Self-custodial signing flow |
 | Broadcast | `POST /v1/transactions/broadcast/{id}` | Submit to blockchain |
+| Passkeys | `POST /v1/signing/passkeys/register` | Enroll a passkey |
+| Recovery | `POST /v1/signing/recovery/initiate` | Recover access via email |
 | Policies | `POST /v1/signing/policies` | Restrict signing rules |
 | Approvals | `GET /v1/signing/approvals` | Review pending approvals |
-| Integrators | `POST /v1/integrators` | Create isolated sub-accounts |
 
 ## Security Model
 
-- Private keys are stored in Turnkey hardware-secured enclaves — Relayer never has access to raw keys
-- All signing requests are authenticated with your API key
+- Private keys live inside a hardware-secured enclave — neither Relayer nor the integrator ever sees raw key material
+- Every signing operation is gated by a passkey biometric prompt on the user's device
 - Signing policies provide a second layer of control independent of API authentication
 - Approval flows add a human-in-the-loop gate for sensitive operations
 
@@ -94,6 +84,6 @@ An integrator is a sub-account within your operator that can have its own wallet
     Create a wallet and sign your first transaction.
   </Card>
   <Card title="Endpoints" icon="code" href="/signing/endpoints">
-    Configure signing policies, approvals, and integrators.
+    Configure signing policies, approvals, and recovery.
   </Card>
 </CardGroup>

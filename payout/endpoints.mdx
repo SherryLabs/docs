@@ -1,98 +1,22 @@
 ---
 title: "Payout Endpoints"
-description: "Rails (KYB), accounts (virtual accounts, payments), and recipients (beneficiaries, bank accounts) reference"
+description: "Accounts (virtual accounts, payments), on-ramp, off-ramp, recipients, and orders reference"
 sidebarTitle: "Endpoints"
 ---
 
 Reference for all Payout Kit endpoints. For interactive schemas and try-it functionality, see the [API Reference](/api-reference/introduction).
 
-## Payout Rails
-
-Rails endpoints wrap Bridge's KYB and transfer infrastructure.
-
-### Create Business Customer
-
-Register your operator account with Bridge for KYB. Required before processing any payouts.
-
-```
-POST /v1/payout/rails/business-customers
-```
-
-**Request body:**
-```json
-{
-  "businessName": "Acme Operator LLC",
-  "registrationNumber": "12-3456789",
-  "country": "US",
-  "website": "https://acme.example.com"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": "cust_abc123",
-    "kybStatus": "pending",
-    "createdAt": "2026-03-28T12:00:00.000Z"
-  }
-}
-```
-
-KYB review is asynchronous. Status transitions from `pending` to `approved` (or `rejected`).
-
----
-
-### Get Business Customer
-
-```
-GET /v1/payout/rails/business-customers/:id
-```
-
-Poll this endpoint to check KYB approval status.
-
----
-
-### Create External Account
-
-Register a bank account with Bridge for off-ramp transfers.
-
-```
-POST /v1/payout/rails/external-accounts
-```
-
----
-
-### List External Accounts
-
-```
-GET /v1/payout/rails/external-accounts
-```
-
----
-
-### Create Transfer
-
-Initiate a direct off-ramp transfer via Bridge.
-
-```
-POST /v1/payout/rails/transfers
-```
-
-<Warning>
-  For most use cases, prefer the higher-level `POST /v1/payout/accounts/execute` endpoint which handles quoting and execution in a managed flow. Use direct transfers only for advanced scenarios.
-</Warning>
-
----
+<Note>
+  Business onboarding (KYB) is completed through the Relayer dashboard before you can call any of these endpoints. Once your workspace is approved, every endpoint below is available.
+</Note>
 
 ## Payout Accounts
 
-Account setup and payment execution endpoints.
+Account setup and payment execution for the cross-currency flow (stablecoin → fiat).
 
-### Step 1: Create Liquidation Address
+### Step 1 — Create Withdrawal Address (Liquidation Address)
 
-Link a beneficiary's bank account to a crypto chain for off-ramp. Idempotent — returns the existing address if already configured for this beneficiary.
+Link a recipient's bank account to a crypto chain for off-ramp. Idempotent — returns the existing address if already configured for this recipient.
 
 ```
 POST /v1/payout/accounts/setup/liquidation-address
@@ -102,7 +26,7 @@ POST /v1/payout/accounts/setup/liquidation-address
 ```json
 {
   "beneficiaryId": "ben_abc123",
-  "externalAccountId": "ext_xyz789",
+  "beneficiaryAccountId": "acc_xyz789",
   "chain": "polygon",
   "currency": "usdc"
 }
@@ -110,8 +34,8 @@ POST /v1/payout/accounts/setup/liquidation-address
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `beneficiaryId` | string | Relayer beneficiary ID |
-| `externalAccountId` | string | Bridge external account ID |
+| `beneficiaryId` | string | Relayer recipient ID |
+| `beneficiaryAccountId` | string | Recipient's bank account ID |
 | `chain` | string | Blockchain network (e.g., `polygon`, `base`) |
 | `currency` | string | Stablecoin (e.g., `usdc`, `usdt`) |
 
@@ -121,7 +45,7 @@ POST /v1/payout/accounts/setup/liquidation-address
   "success": true,
   "data": {
     "id": "liq_def456",
-    "address": "0xLiquidationAddress",
+    "address": "0xWithdrawalAddress",
     "chain": "polygon",
     "currency": "usdc"
   }
@@ -130,9 +54,9 @@ POST /v1/payout/accounts/setup/liquidation-address
 
 ---
 
-### Step 2: Create Virtual Account
+### Step 2 — Create Virtual Account
 
-Create an MXN SPEI virtual account with a CLABE. Requires a liquidation address to exist first. Idempotent.
+Create an MXN SPEI virtual account with a CLABE tied to the withdrawal address. Requires a withdrawal address to exist first. Idempotent.
 
 ```
 POST /v1/payout/accounts/setup/virtual-account
@@ -142,7 +66,7 @@ POST /v1/payout/accounts/setup/virtual-account
 ```json
 {
   "beneficiaryId": "ben_abc123",
-  "liquidationAddressId": "liq_def456"
+  "beneficiaryAccountId": "acc_xyz789"
 }
 ```
 
@@ -165,7 +89,7 @@ The `clabe` is the SPEI account number your client deposits MXN to.
 
 ### Get Payment Quote
 
-Get the exchange rate and fees for a payment before executing.
+Get the exchange rate and fees for a payment before executing (MXN → USD).
 
 ```
 POST /v1/payout/accounts/quote
@@ -214,42 +138,113 @@ POST /v1/payout/accounts/execute
 }
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "transferId": "xfr_mno345",
-    "status": "pending",
-    "amount": 997.50,
-    "currency": "MXN"
-  }
-}
-```
-
 <Warning>
   Payment execution is irreversible once initiated. Verify quote and recipient details before calling this endpoint.
 </Warning>
 
 ---
 
-### List Virtual Accounts
+### List Payments
 
 ```
 GET /v1/payout/accounts
 ```
 
-Returns all virtual accounts configured for your operator.
+Returns all payments for the authenticated workspace.
+
+### Get Payment Status by Reference
+
+```
+GET /v1/payout/accounts/{reference}/status
+```
 
 ---
 
-## Payout Recipients
+## On-ramp (Fiat → Stablecoin)
 
-Beneficiary and bank account management.
+Move fiat from a client deposit into a stablecoin wallet.
 
-### Create Beneficiary
+### Get On-ramp Quote
 
-Create a recipient record. Stored in Relayer's database — no Bridge call at creation.
+```
+POST /v1/payout/onramp/quote
+```
+
+Returns the current fiat → stablecoin rate, fees, and net amount.
+
+### Create / Get Deposit Account
+
+Create a permanent fiat deposit account (e.g. a CLABE) tied to a stablecoin wallet. Idempotent.
+
+```
+POST /v1/payout/onramp/deposit-accounts
+```
+
+### List Deposit Accounts
+
+```
+GET /v1/payout/onramp/deposit-accounts
+```
+
+### Get a Deposit Account
+
+```
+GET /v1/payout/onramp/deposit-accounts/{id}
+```
+
+### List Lifecycle Events
+
+Track deposit, conversion, and settlement events for a single deposit account.
+
+```
+GET /v1/payout/onramp/deposit-accounts/{id}/events
+```
+
+---
+
+## Off-ramp (Stablecoin → Fiat)
+
+Move stablecoins from a deposit into a recipient's bank account.
+
+### Get Off-ramp Quote
+
+```
+POST /v1/payout/offramp/quote
+```
+
+Returns the current stablecoin → fiat rate, fees, and net amount.
+
+### Create / Get Withdrawal Address
+
+Create a permanent crypto withdrawal address linked to a recipient's bank account. Idempotent.
+
+```
+POST /v1/payout/offramp/withdraw-addresses
+```
+
+### Get a Withdrawal Address
+
+```
+GET /v1/payout/offramp/withdraw-addresses/{id}
+```
+
+### List Drain History
+
+Stablecoin deposits to the withdrawal address that triggered fiat settlements.
+
+```
+GET /v1/payout/offramp/withdraw-addresses/{id}/drains
+```
+
+---
+
+## Recipients (Beneficiaries)
+
+Recipient and bank account management.
+
+### Create Recipient
+
+Create a recipient record. Stored in Relayer — no fiat-rails call at creation.
 
 ```
 POST /v1/payout/recipients
@@ -272,113 +267,71 @@ POST /v1/payout/recipients
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `name` | string | Beneficiary display name |
+| `name` | string | Recipient display name |
 | `email` | string | Contact email |
 | `ownerType` | `"individual"` \| `"business"` | Entity type |
 | `address` | object | Physical address |
 
----
-
-### List Beneficiaries
+### List Recipients
 
 ```
 GET /v1/payout/recipients
 ```
 
-Returns all active beneficiaries for your operator.
+### List Recipients with Bank Accounts
 
----
-
-### List Beneficiaries with Accounts
-
-Returns beneficiaries with their linked bank accounts in a single query.
+Returns recipients with their linked bank accounts embedded — single query, no N+1.
 
 ```
 GET /v1/payout/recipients/with-accounts
 ```
 
----
+### Update Recipient
 
-### Update Beneficiary
-
-Update the name and/or email of a beneficiary. At least one field is required.
+Update the name and/or email of a recipient. At least one field is required.
 
 ```
-PATCH /v1/payout/recipients/:id
+PATCH /v1/payout/recipients/{id}
 ```
 
-**Request body:**
-```json
-{
-  "name": "Maria Garcia Hernandez",
-  "email": "maria.updated@example.com"
-}
-```
+### Update Recipient Status
 
----
-
-### Update Beneficiary Status
-
-Archive or restore a beneficiary. Archived beneficiaries cannot receive payouts.
+Archive or restore a recipient. Archived recipients cannot receive payouts.
 
 ```
-PATCH /v1/payout/recipients/:id/status
+PATCH /v1/payout/recipients/{id}/status
 ```
 
 **Request body:**
 ```json
-{
-  "status": "archived"
-}
+{ "status": "archived" }
 ```
 
-Valid values: `active`, `archived`
-
----
+Valid values: `active`, `archived`.
 
 ### Get Invite Link
 
-Return the current invite token and URL for a beneficiary to submit their bank details.
-
 ```
-GET /v1/payout/recipients/:id/invite
+GET /v1/payout/recipients/{id}/invite
 ```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "inviteUrl": "https://app.relayer.fi/invite/tok_abc123",
-    "token": "tok_abc123",
-    "expiresAt": "2026-04-04T12:00:00.000Z"
-  }
-}
-```
-
----
 
 ### Generate Invite Link
 
 Create a new invite token (valid 7 days). Replaces any existing invite.
 
 ```
-POST /v1/payout/recipients/:id/invite
+POST /v1/payout/recipients/{id}/invite
 ```
-
-No request body required.
-
----
 
 ### Add Bank Account
 
-Register a bank account with Bridge and link it to the beneficiary. One beneficiary can have multiple accounts.
+Register a bank account with the fiat rails partner and link it to the recipient. One recipient can have multiple accounts.
 
 ```
-POST /v1/payout/recipients/:id/accounts
+POST /v1/payout/recipients/{id}/accounts
 ```
 
-**Request body:**
+**Request body (US ACH example):**
 ```json
 {
   "accountNumber": "1234567890",
@@ -389,34 +342,58 @@ POST /v1/payout/recipients/:id/accounts
 ```
 
 <Warning>
-  `account_number`, `clabe`, and `iban` are immutable once set. Use `PATCH /recipients/:id/accounts/:accountId` to update other fields.
+  `account_number`, `clabe`, and `iban` are immutable once set. Use `PATCH /payout/recipients/{id}/accounts/{accountId}` to update other fields.
 </Warning>
-
----
 
 ### Update Bank Account
 
-Update editable fields on a bank account. Changes are synced to Bridge.
-
 ```
-PATCH /v1/payout/recipients/:id/accounts/:accountId
+PATCH /v1/payout/recipients/{id}/accounts/{accountId}
 ```
 
 Editable fields: `routing_number`, `checking_or_savings`, `address`.
 Immutable fields: `account_number`, `clabe`, `iban`.
 
----
-
 ### List Bank Accounts
 
 ```
-GET /v1/payout/recipients/:id/accounts
+GET /v1/payout/recipients/{id}/accounts
 ```
 
-Returns all active bank accounts linked to a beneficiary.
+### Recent Orders for a Recipient
+
+```
+GET /v1/payout/recipients/{id}/orders
+```
+
+---
+
+## Orders
+
+Every transfer is represented as an order. The orders endpoints are unified across all rails — list, get, and cancel are the same regardless of direction.
+
+### List Orders
+
+```
+GET /v1/orders
+```
+
+### Get Order
+
+```
+GET /v1/orders/{id}
+```
+
+### Cancel an Awaiting Order
+
+Idempotent. Only valid while the order is still in `awaiting` status.
+
+```
+POST /v1/orders/{id}/cancel
+```
 
 ---
 
 ## Full API Reference
 
-All endpoints include interactive schemas and a try-it playground in the [API Reference](/api-reference/introduction). Payout endpoints are grouped under the **Payout: Rails**, **Payout: Accounts**, and **Payout: Recipients** tags.
+All endpoints include interactive schemas and a try-it playground in the [API Reference](/api-reference/introduction). Payout endpoints are grouped under **Payout: Accounts**, **Payout: On-ramp**, **Payout: Off-ramp**, **Payout: Recipients**, and **Payout: Orders**.

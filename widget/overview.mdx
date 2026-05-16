@@ -1,27 +1,27 @@
 ---
 title: "Widget Kit"
-description: "Embed self-custodial blockchain widgets — Swap, Earn, Transfer, Payment — with Turnkey passkey signing or your own wallet infrastructure"
+description: "Embed self-custodial blockchain widgets — Swap, Transfer, Bridge — with hosted passkey signing or your own wallet stack"
 sidebarTitle: "Overview"
 ---
 
-Widget Kit is a set of React components and adapters that let you embed blockchain interactions — swaps, lending, transfers, payments — directly in React and Next.js apps. It is built on a self-custodial architecture: **Relayer never holds your private keys**. Transaction signing happens either through Turnkey passkeys or your own wallet infrastructure, depending on which integration mode you choose.
+Widget Kit is a set of React components and adapters that let you embed blockchain interactions — swaps, transfers, cross-chain bridges — directly in React and Next.js apps. It is built on a self-custodial architecture: **Relayer never holds your private keys**. Transaction signing happens either through Relayer's hosted passkey flow or through your own wallet stack, depending on which integration mode you choose.
 
 ## Two Integration Modes
 
-Widget Kit supports two integration modes. The mode is determined by your wallet infrastructure, not the widget type — every widget works with both modes.
+Widget Kit supports two integration modes. The mode is determined by your wallet stack, not the widget type — every widget works with both modes.
 
 <Tabs>
-  <Tab title="Turnkey Mode">
-    **For integrators whose wallets live in Relayer's Turnkey infrastructure.**
+  <Tab title="Passkey Signing">
+    **For integrators using Relayer's managed wallet stack.**
 
-    In Turnkey Mode, each integrator gets a dedicated Turnkey sub-organization with passkey-based signing. The widget handles the full signing flow internally:
+    In Passkey Signing, each integrator gets a dedicated wallet workspace with passkey-based signing. The widget handles the full signing flow internally:
 
     1. Widget sends the transaction to the Relayer API for preparation
     2. User sees a biometric prompt (Face ID, fingerprint, security key)
-    3. The Turnkey enclave signs the transaction using the user's passkey
+    3. The secure enclave signs the transaction using the user's passkey
     4. Relayer API validates and broadcasts the signed transaction
 
-    Each integrator has their own Turnkey sub-org with isolation at the infrastructure level. Team members have individual passkeys. Policies define approval rules.
+    Each integrator has their own isolated wallet workspace. Team members have individual passkeys. Policies define approval rules.
 
     For **Embedder** integrators, each end user gets their own wallet and passkey — the widget guides them through passkey registration and signing.
   </Tab>
@@ -36,31 +36,31 @@ Widget Kit supports two integration modes. The mode is determined by your wallet
     4. Your signer signs the transaction (MPC, HSM, browser wallet, etc.)
     5. Your application broadcasts to the blockchain
 
-    No Turnkey infrastructure is involved. You control the entire signing and broadcast pipeline.
+    No managed signing is involved. You control the entire signing and broadcast pipeline.
   </Tab>
 </Tabs>
 
 ## Self-Custodial Architecture
 
 <Warning>
-Relayer never holds your private keys. All transaction signing happens either through Turnkey passkeys (Turnkey Mode) or your own wallet infrastructure (Metadata Mode).
+Relayer never holds your private keys. All transaction signing happens either through Relayer's hosted passkey flow (Passkey Signing) or through your own wallet stack (Metadata Mode).
 </Warning>
 
-### Turnkey Mode Flow
+### Passkey Signing Flow
 
 ```mermaid
 sequenceDiagram
     participant User
     participant Widget as Widget (React)
     participant API as Relayer API
-    participant TK as Turnkey Enclave
+    participant SE as Secure Enclave
 
     User->>Widget: Initiate action (e.g., Swap)
     Widget->>API: POST /transactions/prepare
     API-->>Widget: { transactionId, unsignedTransaction }
     Widget->>User: Passkey prompt (biometric)
-    User->>TK: Sign with passkey
-    TK-->>Widget: signedTransaction
+    User->>SE: Sign with passkey
+    SE-->>Widget: signedTransaction
     Widget->>API: POST /transactions/confirm
     API->>API: Validate + broadcast
     API-->>Widget: { txHash, status }
@@ -87,17 +87,19 @@ sequenceDiagram
     App-->>User: Success
 ```
 
-## Widget Types
+## Supported Protocols
 
-| Widget | Protocol | What It Does |
-|--------|----------|-------------|
-| **Swap** | Uniswap V4 | Token-to-token swaps |
-| **Earn (Yield)** | Aave | Deposit/withdraw lending positions |
-| **Transfer** | Native | Native and ERC20 token transfers |
-| **Payment** | Composite | Payment acceptance flows |
+Widget Kit ships with first-party widgets for the canonical protocols Relayer supports. Custom widget metadata is not user-uploadable — every widget surface comes from this curated set.
+
+| Widget | What It Does |
+|--------|-------------|
+| **Swap** | Token-to-token swaps via smart routing |
+| **Transfer** | Native and ERC20 token transfers |
+| **Crosschain Transfer** | Transfer the same asset across networks |
+| **Crosschain Bridge** | Bridge assets between supported chains |
 
 <Note>
-Each widget works with both Turnkey Mode and Metadata Mode. The mode is determined by the integrator's configuration, not the widget type.
+Each widget works with both Passkey Signing and Metadata Mode. The mode is determined by the integrator's configuration, not the widget type.
 </Note>
 
 ## Package Ecosystem
@@ -106,27 +108,23 @@ The Widget Kit is composed of three core packages:
 
 | Package | npm | Description | Audience |
 |---------|-----|-------------|----------|
-| **relayer-widgets** | `@relayer-fi/widgets` | Main integration library. React components (`Trigger`), wallet adapters (`createWagmiAdapter`), platform observers for Twitter/X, YouTube, and Twitch. | App developers embedding widgets |
-| **relayer-widgets-core** | `@relayer-fi/widgets-core` | Internal foundation. Shared types, error handling, utility functions, and directory management. Consumed internally by `@relayer-fi/widgets`. | Internal — no direct install needed |
-| **relayer-action-kit** | `@relayer-fi/action-kit` | Action SDK. Metadata validation, executors, and type definitions for building blockchain interactions. | Internal — no direct install needed |
+| **widget-kit-react** | `@relayerfi/widget-kit-react` | Main integration library. React components (`Widget`), wallet adapters, platform observers for Twitter/X, YouTube, and Twitch. | App developers embedding widgets |
+| **widget-kit-core** | `@relayerfi/widget-kit-core` | Framework-agnostic runtime. Widget directory, metadata fetching, security classification. Consumed internally. | Internal — no direct install needed |
+| **action-kit** | `@relayerfi/action-kit` | Shared type and validator contract used by widget-kit. Defines metadata schemas for the canonical protocols. | Internal — no direct install needed |
 
 <Note>
-You only install `@relayer-fi/widgets` directly. The other two packages are peer dependencies bundled internally.
+You only install `@relayerfi/widget-kit-react` directly. The other two packages are peer dependencies bundled internally.
 </Note>
 
-## The Trigger Component
+## The Widget Component
 
-`Trigger` is the main embedding surface. It accepts a URL pointing to blockchain action metadata (or a pre-validated metadata object) and renders an interactive widget card. The component handles metadata fetching, schema validation, wallet connection, and transaction signing automatically — you provide a URL and a wallet adapter, and Trigger does the rest.
+`Widget` is the main embedding surface. It accepts a URL pointing to canonical action metadata (or a pre-validated metadata object) and renders an interactive widget card. The component handles metadata fetching, schema validation, wallet connection, and transaction signing automatically — you provide a URL and a wallet adapter, and the Widget does the rest.
 
-In Turnkey Mode, the Trigger handles the passkey signing prompt automatically. In Metadata Mode, the Trigger returns transaction metadata for the integrator to sign externally.
+In Passkey Signing, the Widget handles the passkey prompt automatically. In Metadata Mode, the Widget returns transaction metadata for the integrator to sign externally.
 
 ## Platform Observers
 
-The package ships observers for automatic trigger detection and rendering on Twitter/X, YouTube, and Twitch. These observers scan the DOM for blockchain action URLs and render Trigger components inline. A browser extension built on the same primitives is also available. For custom embedding in your own app, use the `Trigger` component directly.
-
-## Relayer SDK
-
-Blockchain action metadata is defined and validated using `@sherrylinks/sdk`. The SDK provides TypeScript types, validation functions, and parameter templates for building the metadata objects that power Trigger components. See the [Relayer SDK reference](/widget/sdk) for details.
+The package ships observers for automatic widget detection and rendering on Twitter/X, YouTube, and Twitch. These observers scan the DOM for canonical action URLs and render Widget components inline. A browser extension built on the same primitives is also available. For custom embedding in your own app, use the `Widget` component directly.
 
 ## Next Steps
 
@@ -137,7 +135,7 @@ Blockchain action metadata is defined and validated using `@sherrylinks/sdk`. Th
   <Card title="Integration Guide" icon="plug" href="/widget/integration">
     Embed and theme your first widget.
   </Card>
-  <Card title="Relayer SDK" icon="code" href="/widget/sdk">
-    Build blockchain action metadata with the SDK.
+  <Card title="SDK Reference" icon="code" href="/widget/sdk">
+    The metadata schema for canonical protocols.
   </Card>
 </CardGroup>

@@ -1,93 +1,94 @@
 ---
 title: "Payout Kit"
-description: "Fiat payout infrastructure — Bridge-powered rails, virtual accounts, recipient management, and settlement"
+description: "Fiat on/off-ramp — virtual accounts, recipient management, and settlement"
 sidebarTitle: "Overview"
 ---
 
-The Payout Kit gives operators fiat off-ramp infrastructure built on [Bridge](https://bridge.xyz). Clients deposit stablecoins to a virtual account and receive fiat to their bank. You manage the full cycle: KYB onboarding, recipient configuration, account setup, and settlement execution.
+The Payout Kit gives operators regulated fiat rails for moving money between stablecoins and bank accounts. Clients deposit stablecoins to a deposit account and receive fiat at the recipient bank — or deposit fiat and receive stablecoins at a withdrawal address. You manage the full cycle: business onboarding, recipient configuration, account setup, and settlement execution.
 
 ## Core Concepts
 
-### Payout Rails
+### Off-ramp and On-ramp
 
-Payout rails are the underlying fiat transfer infrastructure provided by Bridge. Relayer wraps Bridge's KYB, virtual account, external account, and transfer APIs so you manage everything from a single API key.
+Two directions, same primitives:
 
-The primary rails flow:
+- **Off-ramp** — stablecoins in, fiat out. Money flows from a withdrawal address to a recipient's bank account.
+- **On-ramp** — fiat in, stablecoins out. Money flows from a deposit account (e.g. a CLABE) to a stablecoin wallet.
 
-```
-Stablecoin deposit → Liquidation address → Off-ramp → Recipient bank account
-```
+Both flows use quote → setup → execute as the canonical lifecycle.
 
-### Business Customers (KYB)
+### Business Onboarding (KYB)
 
-Before sending or receiving fiat, your operator account must complete KYB (Know Your Business) through Bridge. You create a **business customer** record — this is the Bridge-side entity representing your operation.
+Before sending or receiving fiat, your workspace must complete KYB. KYB is a one-time setup managed through the Dashboard. Once approved, your workspace can create deposit accounts, withdrawal addresses, and process transfers.
 
-```
-POST /v1/payout/rails/business-customers
-```
+### Recipients (Beneficiaries)
 
-KYB is a one-time setup. Once approved, your operator account can create virtual accounts and process transfers.
+A **recipient** (beneficiary) is the person or business you want to pay — identified by name, address, and one or more bank accounts. Recipients are managed under `/v1/payout/recipients`.
 
-### Beneficiaries (Recipients)
+Recipient lifecycle:
 
-A **beneficiary** is a recipient you want to pay — a person or business with a bank account. Beneficiaries are stored in Relayer's database (no Bridge call at creation). You then invite them to submit their bank details, which get registered with Bridge.
+1. Create the recipient record (name, address, owner type)
+2. Generate an invite link — the recipient submits their bank details via a hosted form
+3. Add the bank account to the recipient (registered with the fiat rails partner)
+4. Recipient is ready to receive payouts
 
-Beneficiary lifecycle:
-1. Create the beneficiary record (name, address, owner type)
-2. Generate an invite link — beneficiary submits their bank details via a hosted form
-3. Add the bank account to the beneficiary record (registered with Bridge)
-4. Beneficiary is ready to receive payouts
+### Withdrawal Addresses (Off-ramp)
 
-### Liquidation Addresses
-
-A **liquidation address** is a crypto chain address linked to a beneficiary's bank account. When stablecoins are sent to this address, Bridge automatically initiates the off-ramp transfer to the linked bank.
+A **withdrawal address** is a crypto address linked to a recipient's bank account. When stablecoins are sent to this address, the off-ramp transfer to the linked bank is initiated automatically.
 
 ```
-POST /v1/payout/accounts/setup/liquidation-address
+POST /v1/payout/offramp/withdraw-addresses
 ```
 
-This is Step 1 of the two-step account setup. It links a beneficiary's external bank account to a specific chain for off-ramp. The call is idempotent.
+The call is idempotent.
 
-### Virtual Accounts (SPEI/CLABE)
+### Deposit Accounts (On-ramp)
 
-A **virtual account** is a permanent MXN SPEI account with a CLABE number. Your client sends fiat to this CLABE and the funds flow through the liquidation address to the beneficiary's bank.
-
-```
-POST /v1/payout/accounts/setup/virtual-account
-```
-
-This is Step 2 of account setup. Requires a liquidation address to exist first. Returns the CLABE your client uses for deposits. The call is idempotent.
-
-### Payment Quotes & Settlement
-
-Before executing a payment, get a quote to see the rate and fees for a given amount. Then execute the payment to trigger the actual off-ramp transfer.
+A **deposit account** is a permanent fiat account (e.g. a SPEI CLABE in Mexico) tied to a stablecoin wallet. Your client sends fiat to this account and the funds settle to the linked wallet.
 
 ```
-POST /v1/payout/accounts/quote    — Get rate + fees
-POST /v1/payout/accounts/execute  — Trigger settlement
+POST /v1/payout/onramp/deposit-accounts
 ```
+
+The call is idempotent.
+
+### Quotes and Settlement
+
+Before executing a transfer, get a quote to see the rate and fees. Then execute to trigger the actual transfer.
+
+```
+POST /v1/payout/offramp/quote      — Get stablecoin → fiat rate
+POST /v1/payout/onramp/quote       — Get fiat → stablecoin rate
+POST /v1/payout/accounts/quote     — Get cross-currency rate (e.g. MXN → USD)
+POST /v1/payout/accounts/execute   — Trigger settlement
+```
+
+### Orders
+
+Every transfer is represented as an **order** in `/v1/orders`. Unified across rails — list, get, and cancel are the same regardless of direction.
 
 ## Endpoint Summary
 
 | Group | Prefix | Purpose |
 |-------|--------|---------|
-| Rails | `/v1/payout/rails` | Business customer KYB, Bridge transfers |
-| Accounts | `/v1/payout/accounts` | Liquidation addresses, virtual accounts, payments |
-| Recipients | `/v1/payout/recipients` | Beneficiary CRUD, bank account registration |
+| Accounts | `/v1/payout/accounts` | Cross-currency quotes and payment execution |
+| On-ramp | `/v1/payout/onramp` | Fiat → stablecoin: deposit accounts, quotes |
+| Off-ramp | `/v1/payout/offramp` | Stablecoin → fiat: withdrawal addresses, quotes |
+| Recipients | `/v1/payout/recipients` | Beneficiary CRUD and bank account registration |
+| Orders | `/v1/orders` | Unified order list, status, and cancel |
 
 ## Integration Overview
 
 ```mermaid
 graph TD
-    A[Create Business Customer] --> B[KYB Approved]
-    B --> C[Create Beneficiary]
-    C --> D[Generate Invite Link]
-    D --> E[Beneficiary Adds Bank Account]
-    E --> F[Create Liquidation Address]
-    F --> G[Create Virtual Account / CLABE]
-    G --> H[Client Deposits to CLABE]
-    H --> I[Quote + Execute Payment]
-    I --> J[Fiat Arrives at Recipient Bank]
+    A[KYB Approved in Dashboard] --> B[Create Recipient]
+    B --> C[Generate Invite Link]
+    C --> D[Recipient Adds Bank Account]
+    D --> E[Create Withdrawal Address]
+    E --> F[Create Deposit Account / CLABE]
+    F --> G[Client Deposits to CLABE]
+    G --> H[Quote + Execute]
+    H --> I[Fiat Arrives at Recipient Bank]
 ```
 
 ## Next Steps
@@ -97,6 +98,6 @@ graph TD
     Execute an end-to-end payout step by step.
   </Card>
   <Card title="Endpoints" icon="code" href="/payout/endpoints">
-    Rails, accounts, and recipient endpoint reference.
+    Accounts, on/off-ramp, and recipient endpoint reference.
   </Card>
 </CardGroup>

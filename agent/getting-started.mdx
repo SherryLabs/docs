@@ -1,0 +1,241 @@
+---
+title: "Getting Started"
+description: "From zero to running agent — sign up, activate the Agent Kit module, provision your first agent, install the SDK, and ship"
+sidebarTitle: "Getting Started"
+---
+
+This is the full path from "I just heard about Relayer" to "my agent is running, spending USDC, and tracked by 3-layer budget enforcement". Roughly 30 minutes if you have your wallet funded.
+
+<Steps>
+  <Step title="1. Create a workspace">
+    Sign up at the [Relayer dashboard](https://relayer.fi) with your email. You'll receive a verification link; once confirmed, you land in your **workspace** — the multi-tenant container that holds your wallets, API keys, team, and agents.
+
+    A workspace is free to create. Billing kicks in only when you activate a Kit module that has paid usage (Payouts) or when your agents start spending.
+  </Step>
+
+  <Step title="2. Register a passkey">
+    The dashboard walks you through registering a passkey on your device (Face ID, Touch ID, Windows Hello, or a hardware security key). The passkey is the **only thing** that can authorize signing operations on your wallets — neither Relayer nor your password can.
+
+    You can register more than one passkey per workspace (recommended: one per device + one hardware key for recovery).
+  </Step>
+
+  <Step title="3. Activate the Agent Kit module">
+    In Dashboard → **Modules**, toggle **Agent Kit** on. This:
+    - Enables the `/v1/agents/*` and `/v1/action/skills/*` endpoints for your workspace
+    - Provisions an internal queue for budget enforcement
+    - Activates the `agent` permission scope on your API keys
+
+    You can also activate Signing Kit (required for any wallet operations), Payout Kit (fiat rails), and Widget Kit (embedded UI) independently. Agent Kit depends on Signing Kit — the dashboard activates both if needed.
+  </Step>
+
+  <Step title="4. Generate an API key">
+    In Dashboard → **API Keys**, click **Create key**. Pick scope `integrator` (read+write) or `integrator:write` (write only) and give it a name (e.g. "agent-provisioning-prod").
+
+    The key is shown **once** — `rk_client_key_v1_...`. Save it in your password manager or secret store; you can't retrieve it later, only revoke and re-issue.
+
+    <Warning>
+      Never commit API keys to version control. Use environment variables or a secret manager (Vercel envs, AWS Secrets Manager, Doppler, etc.).
+    </Warning>
+  </Step>
+
+  <Step title="5. Create your operator wallet (if you don't have one)">
+    The agent's USDC funds come from your **operator wallet** — a self-custodial wallet your workspace owns. Create it via the Signing Kit prepare/confirm flow, or from the dashboard's **Wallets** tab.
+
+    Fund it with USDC on Solana via:
+    - Direct transfer from your existing wallet (Phantom, Solflare, etc.)
+    - On-ramp from fiat via `POST /v1/payout/onramp/deposit-accounts` (Payout Kit)
+    - A test airdrop (sandbox only)
+  </Step>
+
+  <Step title="6. Provision your first agent (3-round flow)">
+    From the dashboard → **Agents → New agent**, or via API:
+
+    1. `POST /v1/agents/prepare` — your backend calls this; returns an unsigned activity
+    2. Dashboard prompts you to stamp the activity with your passkey (browser-side WebAuthn)
+    3. `POST /v1/agents/confirm-user` — backend submits the stamped activity, gets back the `agentId` and a second unsigned activity
+    4. Dashboard stamps again with passkey
+    5. `POST /v1/agents/confirm-policies` — backend submits, receives the **`agentSecret`**
+
+    <Warning>
+      The `agentSecret` is shown **once**. Push it directly to your agent's secret store. There is no recovery — if lost, you must rotate via `POST /v1/agents/{id}/rotate`.
+    </Warning>
+
+    Each agent gets:
+    - A unique `agentId` (UUID)
+    - Its own Solana USDC wallet (separate from your operator wallet)
+    - An HMAC secret for SDK runtime auth
+  </Step>
+
+  <Step title="7. Configure the agent's budget">
+    Before the agent can spend, define the spend limits via `POST /v1/agents/{id}/budget`:
+
+    ```json
+    {
+      "infrastructure": { "monthlyUSD": 50 },
+      "tokens":         { "monthlyUSD": 200 },
+      "payments":       {
+        "monthlyUSDC": 1000,
+        "perTxUSDC": 100,
+        "approvalThresholdUSDC": 50
+      }
+    }
+    ```
+
+    Three layers enforced independently and atomically server-side:
+    | Layer | What it caps | Failure mode |
+    |---|---|---|
+    | **infra** | API calls (cheap, frequent) | Fail-open on payments-only check |
+    | **tokens** | LLM token spend (Anthropic / OpenAI / Google) | Fail-open on payments-only check |
+    | **payments** | On-chain USDC transfers and x402 payments | Always blocks; never bypassable |
+
+    Transactions above `approvalThresholdUSDC` require a CFO/operator to stamp approval with their passkey (delivered via the dashboard's Approvals queue).
+  </Step>
+
+  <Step title="8. Fund the agent wallet">
+    Move USDC from your operator wallet to the agent wallet via the 2-step fund flow:
+
+    ```text
+    POST /v1/agents/{id}/fund/prepare  { amountUSDC: "100" }
+    → returns unsigned activity for passkey stamping
+    POST /v1/agents/{id}/fund/confirm  { stampedActivity: "..." }
+    → broadcasts the transfer to Solana
+    ```
+
+    Or do it from the dashboard's agent detail view. Either way, the agent now has USDC and can spend up to its `payments` budget.
+  </Step>
+
+  <Step title="9. Install the SDK">
+    In the project where your agent runs:
+
+    <CodeGroup>
+
+    ```bash pnpm
+    pnpm add @relayerfi/agent-sdk
+    ```
+
+    ```bash npm
+    npm install @relayerfi/agent-sdk
+    ```
+
+    ```bash yarn
+    yarn add @relayerfi/agent-sdk
+    ```
+
+    </CodeGroup>
+
+    Requirements:
+    - **Node.js ≥ 22.13.0** — `fetch`, `AbortSignal.timeout`, `node:crypto` HMAC
+    - **ESM only** — no CJS shim
+    - **TypeScript ≥ 5.0** if you want type definitions
+
+    Optional add-on for skills:
+
+    ```bash
+    pnpm add @relayerfi/skills-client
+    ```
+
+    Mastra integration (if you build agents with Mastra):
+
+    ```bash
+    pnpm add @mastra/core
+    # The SDK exposes hooks via the @relayerfi/agent-sdk/mastra entry point.
+    # @mastra/core is an optional peer dep — installed only if you import the hooks.
+    ```
+  </Step>
+
+  <Step title="10. Configure environment variables">
+    Three env vars are required:
+
+    ```text .env
+    RELAYER_AGENT_ID=agt_<from step 6>
+    RELAYER_AGENT_SECRET=<from step 6 — shown once>
+    RELAYER_API_URL=https://api.relayer.fi
+    # or for sandbox testing:
+    # RELAYER_API_URL=https://relayer-api.onrender.com
+    ```
+
+    Drop them in `.env`, your platform's secret store, or your runtime config. **Never log `RELAYER_AGENT_SECRET`** — it's the only thing that can sign API calls as this agent.
+  </Step>
+
+  <Step title="11. Initialize the SDK">
+    Minimal init in your agent runtime:
+
+    ```typescript src/sdk.ts
+    import { RelayerSDK } from "@relayerfi/agent-sdk";
+
+    export const sdk = new RelayerSDK({
+      agentId: process.env.RELAYER_AGENT_ID!,
+      secret: process.env.RELAYER_AGENT_SECRET!,
+      apiUrl: process.env.RELAYER_API_URL!,
+    });
+    ```
+
+    That's it. The constructor:
+    - Validates the 3 required fields
+    - Starts the kill-switch poller (every 30s)
+    - Starts the event batcher (flushes every 10s or on 50 events)
+    - Registers `SIGTERM` / `beforeExit` handlers for graceful shutdown
+
+    See the [SDK Reference](/agent/sdk) for the full constructor config (retries, timeouts, custom intervals).
+  </Step>
+
+  <Step title="12. Make your agent spend money">
+    The simplest paid action is paying for an x402-gated skill:
+
+    ```typescript
+    import { sdk } from "./sdk";
+    import { x402fetch } from "@relayerfi/agent-sdk";
+
+    const response = await x402fetch(sdk, "https://skill.example.com/api/run", {
+      method: "POST",
+      body: JSON.stringify({ input: "What's the current ETH price?" }),
+    });
+    const result = await response.json();
+    ```
+
+    `x402fetch` is the one-liner that ties everything together: payment-budget check, HMAC auth, x402 detection, payment, and retry — all behind a normal `fetch` API.
+
+    If you're building with Mastra:
+
+    ```typescript src/agent.ts
+    import { Agent } from "@mastra/core/agent";
+    import { sdk } from "./sdk";
+    import { relayerMastraHook } from "@relayerfi/agent-sdk/mastra";
+
+    const agent = new Agent({ /* your config */ });
+    const hook = relayerMastraHook(sdk);
+
+    await agent.generate("Generate a financial report", {
+      onStepFinish: hook.onStepFinish,
+    });
+    // Token usage automatically tracked and emitted as llm_call events.
+    ```
+  </Step>
+</Steps>
+
+## What you've built
+
+By the end of step 12, you have:
+
+- A **workspace** in the Relayer dashboard with at least one passkey
+- An **API key** to call `/v1/*` from your backend
+- An **operator wallet** with USDC, owned by your workspace passkey
+- An **agent** with its own wallet, HMAC secret, and 3-layer budget caps
+- A **deployed agent runtime** that uses the SDK to pay for resources, with budget enforcement that cannot be bypassed — not even by a misbehaving LLM in your agent code
+
+## Where to go next
+
+<CardGroup cols={2}>
+  <Card title="SDK Reference" icon="cube" href="/agent/sdk">
+    Exhaustive reference for every class, method, event type, and error in `@relayerfi/agent-sdk`.
+  </Card>
+  <Card title="Agent Kit Flow Guide" icon="route" href="/agent/flow-guide">
+    The same flow as above but focused on the API endpoints — useful when you're not using the dashboard.
+  </Card>
+  <Card title="Skills marketplace" icon="cube" href="/api-reference/introduction">
+    Discover and execute paid skills. Agents pay via x402, the SDK handles it transparently.
+  </Card>
+  <Card title="Examples" icon="code" href="https://github.com/relayerfi">
+    Reference implementations: BI Agent (daily reports), OTC Agent (operator workflow), Outbound Agent (B2B sales).
+  </Card>
+</CardGroup>

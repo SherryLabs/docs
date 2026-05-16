@@ -1,266 +1,187 @@
 ---
 title: "Signing Flow Guide"
-description: "Create a wallet, generate an address, sign a transaction, and broadcast to the blockchain"
+description: "Register a passkey, create a wallet, sign a transaction, and broadcast — using the prepare/confirm pattern"
 sidebarTitle: "Flow Guide"
 ---
 
 <Warning>
-  This guide results in real on-chain transactions when using production credentials. Use the sandbox environment (`https://sandbox.relayer.fi`) while testing. Blockchain transactions are irreversible once broadcast.
+  This guide results in real on-chain transactions when using production credentials. Use the sandbox environment (`https://relayer-api.onrender.com/v1`) while testing. Blockchain transactions are irreversible once broadcast.
 </Warning>
 
-This guide walks through the complete Signing Kit flow: creating a wallet, generating an address, signing a native token transfer, and broadcasting it to the network.
+The Signing Kit uses a **prepare → stamp → confirm** pattern. Every signing operation (wallet creation, address creation, transaction signing) follows the same three steps:
+
+1. **Prepare** — your backend calls the API to get an unsigned activity/transaction
+2. **Stamp** — the user signs the payload with a passkey (WebAuthn, browser-side)
+3. **Confirm** — your backend sends the stamped payload back; the enclave validates and processes it
+
+The passkey stamping in step 2 must happen in a browser context that has access to WebAuthn. Server-only flows (cURL) can call prepare and confirm, but the stamping itself requires user interaction.
 
 ## Prerequisites
 
 - A Relayer API key with the Signing module enabled (see [Authentication](/get-started/authentication))
-- A funded source address (for production; sandbox may use test networks)
+- A user with a registered passkey in your workspace (see step 1 below)
 
 <CodeGroup>
 
 ```bash Environment
 export RELAYER_API_KEY="rk_client_key_v1_your_key_here"
-export RELAYER_BASE_URL="https://sandbox.relayer.fi"  # or https://api.relayer.fi for production
+export RELAYER_BASE_URL="https://relayer-api.onrender.com/v1"  # sandbox; use https://api.relayer.fi/v1 for production
 ```
 
 </CodeGroup>
 
-## Steps
+## Step 1 — Register a passkey (one-time setup)
+
+The first time a user enrolls in your workspace, they register a passkey. This creates the wallet workspace and binds the user's WebAuthn credential to it.
+
+The full flow happens in the browser via the Relayer dashboard or your own WebAuthn-capable frontend. The API calls involved:
+
+```
+POST /v1/signing/passkeys/challenge   → returns WebAuthn challenge
+POST /v1/signing/passkeys/register    → registers the credential and creates the workspace
+```
+
+<Note>
+For end-user onboarding (Embedder integrators), the Widget Kit handles passkey enrollment automatically. See [Widget Kit](/widget/overview).
+</Note>
+
+## Step 2 — Create a wallet
 
 <Steps>
-  <Step title="Create a wallet">
-    Create a new Turnkey-backed wallet. A wallet is the root container — you generate addresses from it.
-
-    <CodeGroup>
+  <Step title="Prepare the wallet creation">
+    Your backend asks the API for an unsigned wallet-creation activity.
 
     ```bash cURL
-    curl -X POST $RELAYER_BASE_URL/v1/wallets \
+    curl -X POST $RELAYER_BASE_URL/v1/signing/wallets/prepare \
+      -H "Authorization: ApiKey $RELAYER_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "name": "My Wallet" }'
+    ```
+
+    The response includes the unsigned activity payload your frontend needs to stamp.
+  </Step>
+
+  <Step title="User stamps with passkey">
+    Your frontend prompts the user with a WebAuthn biometric challenge (Face ID, fingerprint, security key). The browser produces a stamped activity.
+
+    ```typescript Frontend (browser)
+    // Pseudo-code — exact stamping API depends on the WebAuthn library
+    const stamped = await passkey.stamp(unsignedActivity);
+    ```
+  </Step>
+
+  <Step title="Confirm the wallet creation">
+    Your backend sends the stamped activity back to the API.
+
+    ```bash cURL
+    curl -X POST $RELAYER_BASE_URL/v1/signing/wallets/confirm \
       -H "Authorization: ApiKey $RELAYER_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "name": "My Escrow Wallet"
+        "stampedActivity": "..."
       }'
     ```
 
-    ```typescript Node.js
-    const response = await fetch(`${RELAYER_BASE_URL}/v1/wallets`, {
-      method: "POST",
-      headers: {
-        "Authorization": `ApiKey ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: "My Escrow Wallet",
-      }),
-    });
-    const { data } = await response.json();
-    // data.walletId — store this for address creation
-    const walletId = data.walletId;
-    console.log(`Wallet created: ${walletId}`);
-    ```
-
-    </CodeGroup>
-
-    Save the `walletId` — you need it to generate addresses.
+    The response contains the `walletId`. Save it.
   </Step>
+</Steps>
 
-  <Step title="Generate an address">
-    Create a blockchain address on your chosen network. Each address is derived from the wallet's root key.
+## Step 3 — Generate an address
 
-    <CodeGroup>
+Same prepare/stamp/confirm pattern, this time for `CREATE_WALLET_ACCOUNTS`:
 
+```
+POST /v1/signing/wallets/accounts/prepare   { walletId, curve, addressFormat }
+  → user stamps the returned activity with their passkey
+POST /v1/signing/wallets/accounts/confirm   { stampedActivity }
+  → returns { address, addressId, walletId }
+```
+
+<Tip>
+  Use `addressFormat: "ADDRESS_FORMAT_ETHEREUM"` for all EVM-compatible networks (Ethereum, Polygon, Arbitrum, Base, etc.). Use `addressFormat: "ADDRESS_FORMAT_SOLANA"` for Solana.
+</Tip>
+
+## Step 4 — Sign a transaction
+
+<Steps>
+  <Step title="Prepare the transaction">
     ```bash cURL
-    curl -X POST $RELAYER_BASE_URL/v1/wallets/$WALLET_ID/addresses \
+    curl -X POST $RELAYER_BASE_URL/v1/transactions/prepare \
       -H "Authorization: ApiKey $RELAYER_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "curve": "CURVE_SECP256K1",
-        "addressFormat": "ADDRESS_FORMAT_ETHEREUM"
-      }'
-    ```
-
-    ```typescript Node.js
-    const response = await fetch(
-      `${RELAYER_BASE_URL}/v1/wallets/${walletId}/addresses`,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `ApiKey ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          curve: "CURVE_SECP256K1",
-          addressFormat: "ADDRESS_FORMAT_ETHEREUM",
-        }),
-      }
-    );
-    const { data } = await response.json();
-    // data.address — the generated Ethereum address (0x...)
-    const address = data.address;
-    console.log(`Address: ${address}`);
-    ```
-
-    </CodeGroup>
-
-    <Tip>
-      Use `ADDRESS_FORMAT_ETHEREUM` for all EVM-compatible networks (Ethereum, Polygon, Arbitrum, Base, etc.).
-    </Tip>
-  </Step>
-
-  <Step title="Sign a native token transfer">
-    Create a signed transaction for a native token transfer (ETH in this example). The transaction is signed by Turnkey but not yet broadcast.
-
-    <CodeGroup>
-
-    ```bash cURL
-    curl -X POST $RELAYER_BASE_URL/v1/transactions/sign/transfer/native \
-      -H "Authorization: ApiKey $RELAYER_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "walletId": "'$WALLET_ID'",
+        "walletId": "wallet_abc123",
         "from": "0xYourWalletAddress",
         "to": "0xRecipientAddress",
-        "amount": "0.01",
+        "value": "10000000000000000",
         "network": "sepolia"
       }'
     ```
 
-    ```typescript Node.js
-    const response = await fetch(
-      `${RELAYER_BASE_URL}/v1/transactions/sign/transfer/native`,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `ApiKey ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          walletId,
-          from: "0xYourWalletAddress",
-          to: "0xRecipientAddress",
-          amount: "0.01",
-          network: "sepolia",
-        }),
-      }
-    );
-    const { data } = await response.json();
-    // data.transactionId — use this to broadcast
-    // data.status === "signed"
-    const transactionId = data.transactionId;
-    ```
+    The response includes:
+    - `transactionId` — store this for later
+    - `unsignedTransaction` (hex) — pass to the frontend for passkey signing
 
-    </CodeGroup>
-
-    <Warning>
-      Double-check the `to` address before proceeding. Once broadcast in the next step, the transfer cannot be reversed.
-    </Warning>
+    The transaction is persisted with status `awaiting_signature`.
   </Step>
 
-  <Step title="Broadcast the transaction">
-    Submit the signed transaction to the blockchain. This is the point of no return.
+  <Step title="User signs with passkey">
+    Your frontend signs the unsigned transaction hex with the user's passkey:
 
-    <CodeGroup>
+    ```typescript Frontend (browser)
+    const signedTx = await passkey.signTransaction(unsignedTransaction);
+    ```
+  </Step>
+
+  <Step title="Confirm — and broadcast">
+    Send the signed hex to confirm. The API validates the signature against the original unsigned transaction via hash comparison, persists the signed transaction, and broadcasts to the blockchain.
 
     ```bash cURL
-    curl -X POST $RELAYER_BASE_URL/v1/transactions/broadcast/$TRANSACTION_ID \
+    curl -X POST $RELAYER_BASE_URL/v1/transactions/confirm \
       -H "Authorization: ApiKey $RELAYER_API_KEY" \
-      -H "Content-Type: application/json"
+      -H "Content-Type: application/json" \
+      -d '{
+        "transactionId": "tx_def456",
+        "signedTransaction": "0x..."
+      }'
     ```
 
-    ```typescript Node.js
-    const response = await fetch(
-      `${RELAYER_BASE_URL}/v1/transactions/broadcast/${transactionId}`,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `ApiKey ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    const { data } = await response.json();
-    // data.txHash — on-chain transaction hash
-    // data.status === "broadcast"
-    console.log(`Broadcast. TX hash: ${data.txHash}`);
-    ```
-
-    </CodeGroup>
+    The response contains `txHash` once the transaction is in the mempool.
   </Step>
 
-  <Step title="Check broadcast status">
+  <Step title="Check status">
     Poll the broadcast status to confirm on-chain confirmation.
-
-    <CodeGroup>
 
     ```bash cURL
     curl $RELAYER_BASE_URL/v1/transactions/broadcast/$TRANSACTION_ID \
       -H "Authorization: ApiKey $RELAYER_API_KEY"
     ```
 
-    ```typescript Node.js
-    const response = await fetch(
-      `${RELAYER_BASE_URL}/v1/transactions/broadcast/${transactionId}`,
-      {
-        headers: { "Authorization": `ApiKey ${apiKey}` },
-      }
-    );
-    const { data } = await response.json();
-    // data.status: "broadcast" | "confirmed" | "failed"
-    // data.blockNumber — set once confirmed
-    console.log(`Status: ${data.status}, Block: ${data.blockNumber}`);
-    ```
-
-    </CodeGroup>
+    **Status values:** `broadcast`, `confirmed`, `failed`. Once confirmed, the response includes `blockNumber`.
   </Step>
 </Steps>
 
-## Signing an ERC20 Transfer
+## Separating signing from broadcasting
 
-For ERC20 tokens, use the token transfer endpoint instead:
+If you need to gate the broadcast step (multi-step approval, scheduled submission), don't use confirm-with-broadcast. Instead:
 
-<CodeGroup>
+1. `POST /v1/transactions/prepare` → unsigned tx
+2. User stamps with passkey on the frontend
+3. `POST /v1/transactions/confirm` → signs and persists (no broadcast yet) — TODO: confirm whether your tenant supports this gated mode
+4. `POST /v1/transactions/broadcast/{transactionId}` later, when conditions are met
+
+Alternatively, sign externally and submit raw:
 
 ```bash cURL
-curl -X POST $RELAYER_BASE_URL/v1/transactions/sign/transfer/token \
+curl -X POST $RELAYER_BASE_URL/v1/transactions/broadcast/raw \
   -H "Authorization: ApiKey $RELAYER_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "walletId": "'$WALLET_ID'",
-    "from": "0xYourWalletAddress",
-    "to": "0xRecipientAddress",
-    "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-    "amount": "100",
-    "network": "mainnet"
-  }'
+  -d '{ "rawSignedTransaction": "0x...", "network": "mainnet" }'
 ```
 
-```typescript Node.js
-const response = await fetch(
-  `${RELAYER_BASE_URL}/v1/transactions/sign/transfer/token`,
-  {
-    method: "POST",
-    headers: {
-      "Authorization": `ApiKey ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      walletId,
-      from: "0xYourWalletAddress",
-      to: "0xRecipientAddress",
-      tokenAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC
-      amount: "100",
-      network: "mainnet",
-    }),
-  }
-);
-```
+## Cancelling before broadcast
 
-</CodeGroup>
-
-Then broadcast using the same `POST /v1/transactions/broadcast/{transactionId}` step above.
-
-## Cancelling Before Broadcast
-
-A signed transaction that has not been broadcast can be cancelled:
+A transaction in `awaiting_signature` status can be cancelled:
 
 ```bash cURL
 curl -X DELETE $RELAYER_BASE_URL/v1/transactions/sign/$TRANSACTION_ID \
@@ -268,20 +189,31 @@ curl -X DELETE $RELAYER_BASE_URL/v1/transactions/sign/$TRANSACTION_ID \
 ```
 
 <Warning>
-  Once `POST /v1/transactions/broadcast/{id}` is called, cancellation is no longer possible. The transaction is submitted to the mempool.
+  Once `POST /v1/transactions/confirm` has broadcast the transaction, cancellation is no longer possible. The transaction is in the mempool.
 </Warning>
+
+## Approval gate (high-value transactions)
+
+If your workspace has approval enabled and the transaction value exceeds the threshold, `POST /v1/transactions/confirm` returns **HTTP 202** with `{ approvalId }` instead of broadcasting. The transaction stays pending until an authorized team member stamps approval:
+
+```
+GET  /v1/signing/approvals                              — Approver lists pending requests
+POST /v1/signing/approvals/{id}/approve-with-passkey    — Approver stamps approval
+```
+
+Once approved, the transaction is broadcast automatically.
 
 ## Next Steps
 
 <CardGroup cols={2}>
   <Card title="Endpoints" icon="code" href="/signing/endpoints">
-    Configure signing policies and approval flows.
+    Full endpoint reference for wallets, transactions, passkeys, recovery, policies, and approvals.
   </Card>
   <Card title="API Reference" icon="book" href="/api-reference/introduction">
-    Full endpoint schemas and try-it playground.
+    Interactive schemas and try-it playground.
   </Card>
   <Card title="Glossary" icon="book-open" href="/shared/glossary">
-    Wallet, escrow, passkey, and other domain terms.
+    Wallet, passkey, policy, and other domain terms.
   </Card>
   <Card title="Error Reference" icon="triangle-exclamation" href="/shared/error-reference">
     API error codes and handling patterns.

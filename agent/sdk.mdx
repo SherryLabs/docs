@@ -1,0 +1,543 @@
+---
+title: "SDK Reference"
+description: "Exhaustive reference for @relayerfi/agent-sdk and @relayerfi/skills-client — classes, methods, events, errors"
+sidebarTitle: "SDK Reference"
+---
+
+`@relayerfi/agent-sdk` is the runtime SDK your agent loads. It signs every API call with HMAC-SHA256, enforces 3-layer budgets, polls the kill switch, batches telemetry, and orchestrates x402 payments + human approvals — all behind a small public surface.
+
+<Info>
+  New to the Agent Kit? Start with [Getting Started](/agent/getting-started) for the full journey from workspace signup to running agent.
+</Info>
+
+## Packages
+
+| Package | Version | Purpose |
+|---|---|---|
+| `@relayerfi/agent-sdk` | `1.0.0` | Core SDK. RelayerSDK facade + HMAC, budget, kill switch, x402, approvals, LLM wrappers, Mastra hook |
+| `@relayerfi/skills-client` | `0.1.0` | Mastra tools for skill discovery and execution |
+
+Install:
+
+<CodeGroup>
+
+```bash pnpm
+pnpm add @relayerfi/agent-sdk
+# Optional, for skills:
+pnpm add @relayerfi/skills-client
+# Optional, for Mastra integration:
+pnpm add @mastra/core
+```
+
+```bash npm
+npm install @relayerfi/agent-sdk
+npm install @relayerfi/skills-client
+npm install @mastra/core
+```
+
+</CodeGroup>
+
+**Requirements:** Node.js ≥ 22.13.0, ESM, TypeScript ≥ 5.0 for typings.
+
+## Entry points
+
+```typescript
+// Core SDK
+import { RelayerSDK, x402fetch, wrapAnthropic, wrapOpenAI, wrapGoogle } from "@relayerfi/agent-sdk";
+
+// Errors
+import {
+  RelayerError,
+  RelayerApiError,
+  BudgetExhaustedError,
+  KillSwitchActiveError,
+  ApiUnreachableError,
+  X402PaymentError,
+  ApprovalTimeoutError,
+  ApprovalRejectedError,
+} from "@relayerfi/agent-sdk";
+
+// Mastra integration (optional peer dep on @mastra/core)
+import { relayerMastraHook } from "@relayerfi/agent-sdk/mastra";
+
+// Skills (separate package)
+import { listSkillsTool, executeSkillTool } from "@relayerfi/skills-client/mastra";
+```
+
+---
+
+## RelayerSDK
+
+The main facade. Construct once per agent process and reuse.
+
+### Constructor
+
+```typescript
+new RelayerSDK(config: RelayerSDKConfig)
+```
+
+<ParamField body="agentId" type="string" required>
+  The agent UUID, issued by `POST /v1/agents/confirm-policies` at provisioning time.
+  Typically: `process.env.RELAYER_AGENT_ID`.
+</ParamField>
+
+<ParamField body="secret" type="string" required>
+  The agent's HMAC secret, also issued by `POST /v1/agents/confirm-policies` — **shown once**, never retrievable.
+  Typically: `process.env.RELAYER_AGENT_SECRET`.
+</ParamField>
+
+<ParamField body="apiUrl" type="string" required>
+  Base URL of the Relayer API. `https://api.relayer.fi` for production, `https://relayer-api.onrender.com` for sandbox.
+  Typically: `process.env.RELAYER_API_URL`.
+</ParamField>
+
+<ParamField body="retries" type="number" default="3">
+  Number of retry attempts on HTTP failure. Retries `429` and `5xx`. Non-`429` `4xx` errors never retry (caller bug, not transient).
+</ParamField>
+
+<ParamField body="retryBaseMs" type="number" default="1000">
+  Base backoff in ms. Exponential with jitter, capped at 10s.
+</ParamField>
+
+<ParamField body="timeoutMs" type="number" default="30000">
+  Per-request timeout in ms (via `AbortSignal.timeout`).
+</ParamField>
+
+<ParamField body="killSwitchPollInterval" type="number" default="30000">
+  How often the kill-switch poller hits `GET /v1/agents/{id}/status`. Lower = faster reaction to a kill, higher = less API noise.
+</ParamField>
+
+<ParamField body="eventFlushInterval" type="number" default="10000">
+  How often the event batcher flushes to `POST /v1/agents/events/batch`. Flushes earlier if the buffer reaches `eventBatchSize` or if a `payment` event arrives (immediate).
+</ParamField>
+
+<ParamField body="eventBatchSize" type="number" default="50">
+  Max events per flush. The batcher splices the whole buffer when flushing.
+</ParamField>
+
+<ParamField body="approvalPollInterval" type="number" default="5000">
+  How often `x402fetch` polls `GET /v1/signing/approvals/{id}` while waiting for human approval.
+</ParamField>
+
+<ParamField body="approvalTimeout" type="number" default="300000">
+  Max time to wait for an approval before throwing `ApprovalTimeoutError`. Default 5 minutes.
+</ParamField>
+
+<ParamField body="autoShutdown" type="boolean" default="true">
+  Register `SIGTERM` / `beforeExit` handlers that call `shutdown()` and flush pending events. Disable if you manage shutdown manually.
+</ParamField>
+
+<ParamField body="logger" type="Logger">
+  Optional logger with `info(msg, data?)`, `warn(msg, data?)`, `error(msg, data?)`. Undefined by default — no logs are printed.
+</ParamField>
+
+### Minimal init
+
+```typescript
+import { RelayerSDK } from "@relayerfi/agent-sdk";
+
+export const sdk = new RelayerSDK({
+  agentId: process.env.RELAYER_AGENT_ID!,
+  secret: process.env.RELAYER_AGENT_SECRET!,
+  apiUrl: process.env.RELAYER_API_URL!,
+});
+```
+
+The constructor:
+1. Validates the 3 required fields (throws synchronously if missing)
+2. Builds an `HttpClient` with HMAC-SHA256 signing
+3. Starts the kill-switch poller (immediate first call, then interval)
+4. Starts the event batcher's interval flush
+5. Registers shutdown handlers (unless `autoShutdown: false`)
+
+### Methods
+
+#### `checkBudget(): Promise<void>`
+
+Checks budget layers **1+2 only** (infra + tokens). Use for telemetry-only operations that should still proceed if only payments are exhausted.
+
+```typescript
+await sdk.checkBudget(); // throws BudgetExhaustedError if infra OR tokens exhausted
+```
+
+Implementation: hits `GET /v1/agents/{id}/budget`, throws `BudgetExhaustedError([...failed])` with the array of exhausted layers. Layer 3 (payments) is not checked here.
+
+#### `checkPaymentBudget(): Promise<void>`
+
+Checks **all 3 layers** plus the kill switch. Use before any USDC outflow.
+
+```typescript
+await sdk.checkPaymentBudget();
+// throws KillSwitchActiveError if kill switch is active
+// throws BudgetExhaustedError(["infra"|"tokens"|"payments"]) if any layer is empty
+```
+
+Order: kill switch check first, then budget query. The kill switch is `isBlocked` if `agent.killSwitch === true` **or** the API is unreachable (fail-safe).
+
+#### `isKillSwitchActive: boolean` (getter)
+
+`true` if the kill switch is currently active OR the API was unreachable on the last poll.
+
+```typescript
+if (sdk.isKillSwitchActive) {
+  // Skip payment operations; safe to continue with infra-only work.
+}
+```
+
+#### `emitEvent(event: RelayerEvent): void`
+
+Adds an event to the batch buffer. Returns immediately. The batch flushes:
+- On the configured interval (default 10s)
+- When buffer length reaches `eventBatchSize` (default 50)
+- **Immediately** if `event.type === "payment"`
+
+```typescript
+sdk.emitEvent({
+  type: "api_call",
+  timestamp: new Date().toISOString(),
+  agentId: sdk.agentId,
+  data: { endpoint: "https://example.com/api", cost_usd: "0.001" },
+});
+```
+
+Event types: `payment`, `token_usage`, `llm_call`, `api_call`, `budget_check`, `kill_switch`, `error`.
+
+Failure handling inside the batcher:
+- `429` and `5xx` from event batch endpoint → re-enqueue with 60s backoff
+- `4xx` (non-429) → drop the batch (permanent failure, caller bug)
+- Network error / timeout → re-enqueue with 60s backoff
+
+#### `createUserWallet(input): Promise<{ wallet_id, addresses }>`
+
+Asks the API to stamp a `CREATE_WALLET` activity using the agent's own P-256 key. Requires the agent's policies to include `Allow: Agent — Create Wallets`.
+
+```typescript
+const { wallet_id, addresses } = await sdk.createUserWallet({
+  walletName: "Operations wallet",
+  // optional — defaults to Solana ED25519
+  accounts: [{ curve: "ed25519", pathFormat: "...", path: "m/44'/501'/0'/0'", addressFormat: "solana" }],
+});
+```
+
+Calls `POST /v1/agents/wallets`. The wallet is owned by the agent itself, not by the agent's parent workspace.
+
+#### `buildAuthHeaders(method, path, body?): Record<string, string>`
+
+Returns the 4 headers the API expects for HMAC-authenticated requests. Useful if you bypass the SDK's HTTP client (e.g. WebSocket auth):
+
+```typescript
+const headers = sdk.buildAuthHeaders("POST", "/v1/agents/self-bookkeeping", { foo: "bar" });
+// {
+//   "x-agent-id":          "agt_abc123",
+//   "x-agent-auth":        "ad3f...",        // hex HMAC-SHA256
+//   "x-request-timestamp": "1715772600",
+//   "X-SDK-Version":       "@relayerfi/agent-sdk@1.0.0"
+// }
+```
+
+**Payload**: `${method}${path}${timestamp}${sha256(body)}`. The signature is HMAC-SHA256 over that string with the agent secret. Empty body → `sha256("")`. The server validates the timestamp window (±60s).
+
+#### `http: HttpClient` (getter)
+
+Direct access to the underlying HTTP client. Use for endpoints the SDK doesn't expose as first-class methods:
+
+```typescript
+const data = await sdk.http.post("/v1/agents/" + sdk.agentId + "/sign-transaction", {
+  unsignedTx: base64Tx,
+});
+```
+
+`HttpClient` exposes `get<T>(path)`, `post<T>(path, body)`, `agentId`, `apiUrl`, and `buildAuthHeaders(...)`.
+
+#### `agentId: string` and `apiUrl: string` (getters)
+
+Convenience accessors:
+
+```typescript
+sdk.agentId;  // "agt_abc123"
+sdk.apiUrl;   // "https://api.relayer.fi"
+```
+
+#### `budget` (object)
+
+Tiny accessor for the cached budget snapshot. The cache is populated automatically when API responses include `budget_status` (server-pushed updates).
+
+```typescript
+sdk.budget.get();      // BudgetStatus | null
+// sdk.budget.refresh()  // not implemented yet — throws NotImplementedError
+```
+
+#### `shutdown(): Promise<void>`
+
+Stops the kill-switch poll, stops the approval handler, flushes pending events, stops the event batcher. Idempotent. Called automatically on `SIGTERM` and `beforeExit` if `autoShutdown` is `true` (default).
+
+```typescript
+await sdk.shutdown();
+```
+
+---
+
+## x402fetch
+
+A `fetch`-compatible wrapper that ties together: budget check, HMAC auth, x402 detection, payment, approval, and retry.
+
+```typescript
+import { x402fetch } from "@relayerfi/agent-sdk";
+
+const response = await x402fetch(sdk, "https://skill.example.com/api/run", {
+  method: "POST",
+  body: JSON.stringify({ input: "..." }),
+});
+const data = await response.json();
+```
+
+### What it does, step by step
+
+1. **Budget check** — `sdk.checkPaymentBudget()`. Throws `BudgetExhaustedError` or `KillSwitchActiveError` before any network call.
+2. **Auth headers** — builds HMAC headers for the external URL (path-only, since the host is external).
+3. **First request** — sends with the original body and headers.
+4. **402 handling** — if the server returns `402 Payment Required`, extracts the `paymentRequirement` from the body, calls `POST /v1/agents/{id}/x402-pay`, gets a `paymentHeader`, retries the request with that header. Emits a `payment` event on success.
+5. **202 handling** — if the server returns `202 Accepted` with an `approvalId`, suspends and polls `GET /v1/signing/approvals/{id}` every 5s. On approval, retries the original request. On rejection, throws `ApprovalRejectedError`. On timeout, throws `ApprovalTimeoutError`.
+6. **Everything else** — passes through unchanged.
+
+### When to use
+
+- Calling any third-party API that's x402-gated
+- Calling a skill from the marketplace
+- Any operation where you want budget + approval + payment in one call
+
+If you only need HMAC auth without payment handling, use `sdk.http.post(...)` directly.
+
+---
+
+## LLM Wrappers
+
+ES Proxy wrappers that intercept LLM provider calls and emit `llm_call` events with token counts. **Zero overhead until the first LLM call** — the proxy is lazy.
+
+### `wrapAnthropic<T>(client: T, sdk: RelayerSDK): T`
+
+```typescript
+import Anthropic from "@anthropic-ai/sdk";
+import { wrapAnthropic } from "@relayerfi/agent-sdk";
+
+const raw = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const anthropic = wrapAnthropic(raw, sdk);
+
+// Use exactly like the original — emits llm_call events automatically
+const response = await anthropic.messages.create({
+  model: "claude-opus-4-5",
+  max_tokens: 1024,
+  messages: [{ role: "user", content: "Hello" }],
+});
+```
+
+What gets tracked: `provider: "anthropic"`, `model`, `tokens_input`, `tokens_output` extracted from `response.usage`.
+
+### `wrapOpenAI<T>(client: T, sdk: RelayerSDK): T`
+
+Same pattern. Intercepts `client.chat.completions.create()` and extracts `response.usage.{prompt_tokens, completion_tokens}`.
+
+### `wrapGoogle<T>(client: T, sdk: RelayerSDK): T`
+
+Same pattern. Intercepts the Gemini SDK's generation calls.
+
+### Type safety
+
+The wrappers return the **same type** as the input client. So `wrapAnthropic(new Anthropic(...))` returns an `Anthropic` instance from your IDE's perspective. No type juggling.
+
+### Failure mode
+
+Tracking errors are swallowed silently — if event emission fails, the LLM call still succeeds. Logged via the SDK logger if one is configured.
+
+---
+
+## Mastra Integration
+
+For agents built with [Mastra](https://mastra.ai). The hook plugs into `agent.generate({ onStepFinish })`.
+
+### `relayerMastraHook(sdk: RelayerSDK)`
+
+```typescript
+import { Agent } from "@mastra/core/agent";
+import { relayerMastraHook } from "@relayerfi/agent-sdk/mastra";
+import { sdk } from "./sdk";
+
+const agent = new Agent({ /* your config */ });
+const hook = relayerMastraHook(sdk);
+
+await agent.generate("Generate a financial summary", {
+  onStepFinish: hook.onStepFinish,
+});
+```
+
+Returns `{ onStepFinish: (step) => void }`. Reads `step.usage` (Mastra's standardized usage object) and emits `llm_call` events with provider and model parsed from `step.modelId` (format: `"provider/model"`, e.g. `"anthropic/claude-opus-4-5"`).
+
+Tracking errors are swallowed — broken telemetry never breaks the agent.
+
+---
+
+## Skills Client
+
+`@relayerfi/skills-client` exposes Mastra-compatible tools for skill discovery and execution. The agent picks skills autonomously based on tool descriptions.
+
+```typescript
+import { listSkillsTool, executeSkillTool } from "@relayerfi/skills-client/mastra";
+import { Agent } from "@mastra/core/agent";
+import { sdk } from "./sdk";
+
+const agent = new Agent({
+  name: "BI Reporter",
+  instructions: "Generate daily financial reports using the available skills.",
+  model: { /* ... */ },
+  tools: {
+    listSkills: listSkillsTool(sdk),
+    executeSkill: executeSkillTool(sdk),
+  },
+});
+```
+
+- **`listSkillsTool(sdk)`** — wraps `GET /v1/action/skills`. Returns the array of skills available to this agent (own private + all public).
+- **`executeSkillTool(sdk)`** — wraps `POST /v1/action/skills/{id}/execute` via `x402fetch`. Handles payment automatically.
+
+Each tool factory takes the SDK instance and captures it via closure — no module-level singletons. Safe to instantiate one tool per agent.
+
+---
+
+## Errors
+
+All SDK errors extend `RelayerError`. Use `instanceof` for dispatch.
+
+```typescript
+import {
+  RelayerError,         // base class
+  RelayerApiError,      // any non-2xx response with statusCode + endpoint + body
+  BudgetExhaustedError, // failedLayers: ("infra" | "tokens" | "payments")[]
+  KillSwitchActiveError,// payment operations blocked because kill switch is active
+  ApiUnreachableError,  // payment operations blocked because API is unreachable (fail-safe)
+  X402PaymentError,     // x402 payment failed after retries
+  ApprovalTimeoutError, // approval not resolved within `approvalTimeout`
+  ApprovalRejectedError,// approval was actively rejected by a human approver
+} from "@relayerfi/agent-sdk";
+```
+
+### Dispatch example
+
+```typescript
+try {
+  await x402fetch(sdk, url, init);
+} catch (err) {
+  if (err instanceof BudgetExhaustedError) {
+    console.error(`Budget out on: ${err.failedLayers.join(", ")}`);
+    return;
+  }
+  if (err instanceof KillSwitchActiveError) {
+    console.warn("Agent is killed — stopping");
+    process.exit(0);
+  }
+  if (err instanceof ApprovalRejectedError) {
+    console.error(`Approval ${err.approvalId} was rejected`);
+    return;
+  }
+  if (err instanceof ApprovalTimeoutError) {
+    console.warn(`Approval ${err.approvalId} timed out — try smaller amount`);
+    return;
+  }
+  if (err instanceof RelayerApiError) {
+    console.error(`API ${err.statusCode} on ${err.endpoint}:`, err.body);
+    return;
+  }
+  throw err;
+}
+```
+
+### Fail-safe vs fail-open
+
+- **Payment operations** (anything that moves USDC) — **fail-safe**: if anything is wrong (budget out, kill switch, API unreachable), the operation is blocked.
+- **Infrastructure operations** (telemetry, status polls, non-payment API calls) — **fail-open**: if the API is unreachable, the agent continues. Telemetry buffers; reconnects retry automatically.
+
+This guarantee is the spine of the Agent Kit: a misbehaving LLM in your agent code cannot bypass payment budgets, even if it has full control of the runtime.
+
+---
+
+## Events
+
+The batcher posts events to `POST /v1/agents/events/batch`. Server fills in `timestamp` and `agentId` server-side; the SDK maps to a minimal shape before send.
+
+| Type | When emitted | Auto-emitted by | Manual? |
+|---|---|---|---|
+| `payment` | After a successful x402 payment | `x402fetch` | Yes |
+| `llm_call` | After an LLM call returns | `wrapAnthropic` / `wrapOpenAI` / `wrapGoogle` / `relayerMastraHook` | Yes |
+| `token_usage` | Alias usable for explicit token accounting | Caller | Yes |
+| `api_call` | Any non-LLM external HTTP call worth metering | Caller | Yes |
+| `budget_check` | Diagnostic for budget queries | Caller | Yes |
+| `kill_switch` | Diagnostic for kill switch state changes | Caller | Yes |
+| `error` | Caller-chosen error checkpoints | Caller | Yes |
+
+Manual emit:
+
+```typescript
+sdk.emitEvent({
+  type: "api_call",
+  timestamp: new Date().toISOString(),
+  agentId: sdk.agentId,
+  data: { endpoint: "https://example.com/lookup", cost_usd: "0.0008" },
+});
+```
+
+---
+
+## Configuration cheat sheet
+
+| Default | Knob | When to change |
+|---|---|---|
+| `retries: 3` | HTTP retry attempts | Lower for hot loops (avoid amplification on outages); higher for batch jobs |
+| `retryBaseMs: 1_000` | Base backoff | Raise to spread retries across longer windows |
+| `timeoutMs: 30_000` | Per-request timeout | Lower for snappy UX; raise for large payloads |
+| `killSwitchPollInterval: 30_000` | Status poll interval | Lower for faster kill reaction (more API noise); raise for quieter agents |
+| `eventFlushInterval: 10_000` | Telemetry flush cadence | Raise if your telemetry is non-critical; lower if you want faster dashboards |
+| `eventBatchSize: 50` | Max events per flush | Raise for very chatty agents to reduce flush count |
+| `approvalPollInterval: 5_000` | Approval queue poll | Raise if approvals are rare; never lower below 5s (API rate limit) |
+| `approvalTimeout: 300_000` | Approval wait timeout | Match the human approver's response SLA (CFO availability) |
+| `autoShutdown: true` | Register SIGTERM handlers | Disable if you manage shutdown manually |
+
+---
+
+## Production checklist
+
+<Steps>
+  <Step title="Secret in a secret manager">
+    `RELAYER_AGENT_SECRET` lives in your platform's secret store. Not in `.env` committed to git. Not in environment variables logged by your runtime.
+  </Step>
+  <Step title="Rotate on schedule">
+    Run `POST /v1/agents/{id}/rotate` quarterly (or after any suspected leak). The old secret is revoked instantly; push the new one to your secret store.
+  </Step>
+  <Step title="Configure a logger">
+    Pass a `logger` to `RelayerSDK` so kill-switch state changes, retries, and event-batch failures are surfaced. The SDK is silent by default.
+  </Step>
+  <Step title="Wire wallet balance to alerts">
+    Poll `GET /v1/agents/{id}/wallet-balance` and alert when it drops below a refill threshold. Top up via `POST /v1/agents/{id}/fund/prepare` + `/fund/confirm`.
+  </Step>
+  <Step title="Test the kill switch">
+    From the dashboard, kill the agent once in staging. Verify your runtime gracefully stops payment operations within ~30s and that infra operations continue.
+  </Step>
+  <Step title="Set a sensible approval threshold">
+    `approvalThresholdUSDC` should be high enough to not interrupt routine work but low enough that one bad LLM decision is caught. $10–$50 is a reasonable range for many use cases.
+  </Step>
+</Steps>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Getting Started" icon="rocket" href="/agent/getting-started">
+    The full path from signup to running agent.
+  </Card>
+  <Card title="Flow Guide" icon="route" href="/agent/flow-guide">
+    Agent lifecycle, funding, budget, and approvals — focused on the API endpoints.
+  </Card>
+  <Card title="API Reference" icon="terminal" href="/api-reference/introduction">
+    Every endpoint with interactive playground and cURL / Node.js / Python samples.
+  </Card>
+  <Card title="Authentication" icon="key" href="/get-started/authentication">
+    The three auth modes, including the HMAC payload spec the SDK implements.
+  </Card>
+</CardGroup>

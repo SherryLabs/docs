@@ -1,74 +1,35 @@
 ---
 title: "Payout Flow Guide"
-description: "Execute an end-to-end fiat payout — from KYB setup to bank settlement"
+description: "Execute an end-to-end fiat payout — from recipient onboarding to bank settlement"
 sidebarTitle: "Flow Guide"
 ---
 
-This guide walks through a complete fiat payout: completing KYB as a business customer, onboarding a recipient, setting up their virtual account, and executing a payment that settles to their bank.
+This guide walks through a complete off-ramp payout: onboarding a recipient, setting up their virtual account, getting a quote, and executing a payment that settles to their bank.
 
 ## Prerequisites
 
 - A Relayer API key (see [Authentication](/get-started/authentication))
-- Your account activated with the Payout module enabled
+- Your workspace activated with the Payout module enabled
+- KYB completed for your workspace (handled through the Relayer dashboard — one-time setup)
 
 <CodeGroup>
 
 ```bash Environment
 export RELAYER_API_KEY="rk_client_key_v1_your_key_here"
-export RELAYER_BASE_URL="https://sandbox.relayer.fi"  # or https://api.relayer.fi for production
+export RELAYER_BASE_URL="https://relayer-api.onrender.com/v1"  # sandbox; use https://api.relayer.fi/v1 for production
 ```
 
 </CodeGroup>
 
+<Note>
+  Business onboarding (KYB) is completed through the dashboard before you can use the Payout API. Once approved, every endpoint below becomes available.
+</Note>
+
 ## Steps
 
 <Steps>
-  <Step title="Create a business customer (KYB)">
-    Register your operator account with Bridge for KYB compliance. This is a one-time setup.
-
-    <CodeGroup>
-
-    ```bash cURL
-    curl -X POST $RELAYER_BASE_URL/v1/payout/rails/business-customers \
-      -H "Authorization: ApiKey $RELAYER_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "businessName": "Acme Operator LLC",
-        "registrationNumber": "12-3456789",
-        "country": "US",
-        "website": "https://acme.example.com"
-      }'
-    ```
-
-    ```typescript Node.js
-    const response = await fetch(`${RELAYER_BASE_URL}/v1/payout/rails/business-customers`, {
-      method: "POST",
-      headers: {
-        "Authorization": `ApiKey ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        businessName: "Acme Operator LLC",
-        registrationNumber: "12-3456789",
-        country: "US",
-        website: "https://acme.example.com",
-      }),
-    });
-    const { data } = await response.json();
-    // data.id — your Bridge business customer ID
-    // data.kybStatus — "pending" initially, "approved" once Bridge reviews
-    const customerId = data.id;
-    ```
-
-    </CodeGroup>
-
-    <Tip>
-      KYB review is asynchronous. Poll `GET /v1/payout/rails/business-customers/:id` or listen for the Bridge webhook to confirm approval before proceeding.
-    </Tip>
-  </Step>
-
-  <Step title="Create a beneficiary (recipient)">
-    Register the person or business you want to pay. This creates a Relayer record — no Bridge call yet.
+  <Step title="Create a recipient (beneficiary)">
+    Register the person or business you want to pay. This creates a recipient record in Relayer — no fiat-rails call yet.
 
     <CodeGroup>
 
@@ -115,8 +76,8 @@ export RELAYER_BASE_URL="https://sandbox.relayer.fi"  # or https://api.relayer.f
     </CodeGroup>
   </Step>
 
-  <Step title="Invite the beneficiary to add their bank account">
-    Generate an invite link. The beneficiary visits this URL to submit their bank details securely. The token is valid for 7 days.
+  <Step title="Invite the recipient to add their bank account">
+    Generate an invite link. The recipient visits this URL to submit their bank details securely. The token is valid for 7 days.
 
     <CodeGroup>
 
@@ -134,17 +95,21 @@ export RELAYER_BASE_URL="https://sandbox.relayer.fi"  # or https://api.relayer.f
       }
     );
     const { data } = await response.json();
-    // data.inviteUrl — send this to the beneficiary
-    console.log(`Send invite to beneficiary: ${data.inviteUrl}`);
+    // data.inviteUrl — send this to the recipient
+    console.log(`Send invite to recipient: ${data.inviteUrl}`);
     ```
 
     </CodeGroup>
 
-    Once the beneficiary submits their bank details, Relayer registers the account with Bridge. You can check bank accounts at any time via `GET /v1/payout/recipients/:id/accounts`.
+    Once the recipient submits their bank details, the account is registered with the regulated fiat rails partner. You can list bank accounts at any time via `GET /v1/payout/recipients/{id}/accounts`.
+
+    <Tip>
+      If you already have the recipient's bank details on file, you can skip the invite and call `POST /v1/payout/recipients/{id}/accounts` directly.
+    </Tip>
   </Step>
 
-  <Step title="Create a liquidation address">
-    Link the beneficiary's bank account to a crypto chain. Funds sent to this address trigger the off-ramp. This call is idempotent.
+  <Step title="Create a withdrawal address (Step 1 of account setup)">
+    Link the recipient's bank account to a crypto chain. Stablecoins sent to this address trigger the off-ramp transfer. This call is idempotent.
 
     <CodeGroup>
 
@@ -154,7 +119,7 @@ export RELAYER_BASE_URL="https://sandbox.relayer.fi"  # or https://api.relayer.f
       -H "Content-Type: application/json" \
       -d '{
         "beneficiaryId": "ben_abc123",
-        "externalAccountId": "ext_xyz789",
+        "beneficiaryAccountId": "acc_xyz789",
         "chain": "polygon",
         "currency": "usdc"
       }'
@@ -171,22 +136,21 @@ export RELAYER_BASE_URL="https://sandbox.relayer.fi"  # or https://api.relayer.f
         },
         body: JSON.stringify({
           beneficiaryId: "ben_abc123",
-          externalAccountId: "ext_xyz789",
+          beneficiaryAccountId: "acc_xyz789",
           chain: "polygon",
           currency: "usdc",
         }),
       }
     );
     const { data } = await response.json();
-    // data.address — the crypto address to use as destination
-    const liquidationAddress = data.address;
+    const withdrawalAddress = data.address;
     ```
 
     </CodeGroup>
   </Step>
 
-  <Step title="Create a virtual account (CLABE)">
-    Create an MXN SPEI virtual account using the liquidation address. Returns the CLABE your client uses for fiat deposits. This call is idempotent.
+  <Step title="Create a virtual account / CLABE (Step 2 of account setup)">
+    Create an MXN SPEI virtual account tied to the withdrawal address. Returns the CLABE your client uses for fiat deposits. This call is idempotent.
 
     <CodeGroup>
 
@@ -196,7 +160,7 @@ export RELAYER_BASE_URL="https://sandbox.relayer.fi"  # or https://api.relayer.f
       -H "Content-Type: application/json" \
       -d '{
         "beneficiaryId": "ben_abc123",
-        "liquidationAddressId": "liq_def456"
+        "beneficiaryAccountId": "acc_xyz789"
       }'
     ```
 
@@ -211,18 +175,17 @@ export RELAYER_BASE_URL="https://sandbox.relayer.fi"  # or https://api.relayer.f
         },
         body: JSON.stringify({
           beneficiaryId: "ben_abc123",
-          liquidationAddressId: "liq_def456",
+          beneficiaryAccountId: "acc_xyz789",
         }),
       }
     );
     const { data } = await response.json();
-    // data.clabe — share this CLABE with your client for deposits
     console.log(`Client CLABE: ${data.clabe}`);
     ```
 
     </CodeGroup>
 
-    Share the CLABE with your client. When they deposit MXN to this CLABE, Bridge routes the funds through the liquidation address.
+    Share the CLABE with your client. When they deposit MXN to this CLABE, the funds settle through the withdrawal address to the recipient's bank.
   </Step>
 
   <Step title="Get a payment quote">
@@ -256,7 +219,7 @@ export RELAYER_BASE_URL="https://sandbox.relayer.fi"  # or https://api.relayer.f
     });
     const { data } = await response.json();
     // data.rate — exchange rate applied
-    // data.fees — Bridge fees
+    // data.fees — settlement fees
     // data.netAmount — recipient receives this amount
     const quoteId = data.quoteId;
     ```
@@ -265,7 +228,7 @@ export RELAYER_BASE_URL="https://sandbox.relayer.fi"  # or https://api.relayer.f
   </Step>
 
   <Step title="Execute the payment">
-    Trigger the settlement. This initiates the off-ramp transfer from your operator account to the beneficiary's bank.
+    Trigger the settlement. This initiates the off-ramp transfer to the recipient's bank.
 
     <CodeGroup>
 
@@ -292,32 +255,77 @@ export RELAYER_BASE_URL="https://sandbox.relayer.fi"  # or https://api.relayer.f
       }),
     });
     const { data } = await response.json();
-    // data.transferId — Bridge transfer ID for tracking
+    // data.reference — payment reference for tracking
     // data.status — "pending" initially
-    console.log(`Transfer initiated: ${data.transferId}`);
+    console.log(`Payment initiated: ${data.reference}`);
     ```
 
     </CodeGroup>
 
     <Warning>
-      Payment execution is irreversible once initiated. Confirm the quote details and beneficiary bank account before calling this endpoint.
+      Payment execution is irreversible once initiated. Confirm the quote details and recipient bank account before calling this endpoint.
     </Warning>
 
-    Settlement typically completes within 1-2 business days via SPEI. Bridge sends webhook events for status updates.
+    Settlement typically completes within 1-2 business days via SPEI.
+  </Step>
+
+  <Step title="Track the order">
+    Every payment is represented as an order. Track status via the unified orders endpoint:
+
+    ```bash cURL
+    curl $RELAYER_BASE_URL/v1/orders/$ORDER_ID \
+      -H "Authorization: ApiKey $RELAYER_API_KEY"
+    ```
+
+    To list recent orders for this recipient:
+
+    ```bash cURL
+    curl $RELAYER_BASE_URL/v1/payout/recipients/$BENEFICIARY_ID/orders \
+      -H "Authorization: ApiKey $RELAYER_API_KEY"
+    ```
+
+    You can also check payment status by reference:
+
+    ```bash cURL
+    curl $RELAYER_BASE_URL/v1/payout/accounts/$REFERENCE/status \
+      -H "Authorization: ApiKey $RELAYER_API_KEY"
+    ```
   </Step>
 </Steps>
+
+## On-ramp variant (fiat → stablecoin)
+
+If instead of off-ramp you want to receive stablecoins from a fiat deposit, use the on-ramp endpoints:
+
+```
+POST /v1/payout/onramp/quote                — Get fiat → stablecoin rate
+POST /v1/payout/onramp/deposit-accounts     — Create or get a deposit account (idempotent)
+GET  /v1/payout/onramp/deposit-accounts/{id}/events  — Track lifecycle events
+```
+
+The deposit account is a permanent fiat account (e.g. a CLABE in Mexico) tied to a stablecoin wallet. When the client deposits fiat, the stablecoin lands at the wallet.
+
+## Cancelling an order
+
+An order in `awaiting` status can be cancelled before settlement:
+
+```
+POST /v1/orders/{id}/cancel
+```
+
+The call is idempotent — calling it twice on the same awaiting order is safe. Once the order has moved past `awaiting`, cancellation is no longer possible.
 
 ## Next Steps
 
 <CardGroup cols={2}>
   <Card title="Endpoints" icon="code" href="/payout/endpoints">
-    Full endpoint reference for rails, accounts, and recipients.
+    Full endpoint reference for accounts, on/off-ramp, recipients, and orders.
   </Card>
   <Card title="API Reference" icon="book" href="/api-reference/introduction">
     Interactive schemas and try-it playground.
   </Card>
   <Card title="Glossary" icon="book-open" href="/shared/glossary">
-    Payout rails, settlement, and other domain terms.
+    Settlement, on-ramp, off-ramp, and other domain terms.
   </Card>
   <Card title="Error Reference" icon="triangle-exclamation" href="/shared/error-reference">
     API error codes and handling patterns.

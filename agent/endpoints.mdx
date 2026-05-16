@@ -1,0 +1,84 @@
+---
+title: "Endpoints"
+description: "Reference card for the Agent Kit API surface"
+sidebarTitle: "Endpoints"
+---
+
+All endpoints below live under `/v1/agents/*` and `/v1/action/skills/*`. Auth is either Bearer JWT / API key (integrator-side) or `X-Agent-Auth` HMAC header (agent-side, built by the SDK).
+
+For full request/response schemas see the [API Reference](/api-reference/introduction).
+
+## Lifecycle
+
+| Method | Path | Caller | What it does |
+|---|---|---|---|
+| `POST` | `/agents/prepare` | Integrator | Round 1 — prepare `CREATE_USERS_V3` for passkey signing |
+| `POST` | `/agents/confirm-user` | Integrator | Round 2 — forward stamped `CREATE_USERS`, return unsigned `CREATE_POLICIES` |
+| `POST` | `/agents/confirm-policies` | Integrator | Round 3 — forward stamped `CREATE_POLICIES`, reveal agent secret (once) |
+| `POST` | `/agents/{id}/prepare-policies` | Integrator | Resume — regenerate unsigned `CREATE_POLICIES` for a `pending_policies` agent |
+| `DELETE` | `/agents/{id}` | Integrator | Abandon a `pending_policies` agent |
+
+## Read
+
+| Method | Path | Caller | What it does |
+|---|---|---|---|
+| `GET` | `/agents` | Integrator | List all agents for the integrator |
+| `GET` | `/agents/{id}` | Integrator | Get agent details |
+| `GET` | `/agents/{id}/wallet` | Integrator | Wallet info + Solana explorer URL |
+| `GET` | `/agents/{id}/wallet-balance` | Integrator or Agent | USDC balance on the agent wallet |
+| `GET` | `/agents/{id}/budget` | Integrator or Agent | Current budget state across all 3 layers |
+| `GET` | `/agents/analytics/summary` | Integrator | Aggregated analytics across all agents |
+| `GET` | `/agents/{id}/analytics` | Integrator or Agent | Per-agent analytics |
+| `GET` | `/agents/{id}/audit` | Integrator | Paginated audit history |
+| `GET` | `/agents/approvals` | Integrator | Pending approval requests for this integrator |
+
+## Control
+
+| Method | Path | What it does |
+|---|---|---|
+| `POST` | `/agents/{id}/budget` | Configure / reconfigure budget layers |
+| `POST` | `/agents/{id}/kill` | Irreversible emergency stop |
+| `POST` | `/agents/{id}/pause` | Reversible pause |
+| `POST` | `/agents/{id}/resume` | Resume a paused agent |
+| `POST` | `/agents/{id}/rotate` | Issue new secret, revoke old |
+| `PATCH` | `/agents/{id}/status` | Update agent status |
+
+## Funding
+
+| Method | Path | What it does |
+|---|---|---|
+| `POST` | `/agents/{id}/fund/prepare` | Prepare USDC transfer integrator → agent |
+| `POST` | `/agents/{id}/fund/confirm` | Forward passkey-stamped activity and broadcast |
+
+## Agent runtime (HMAC X-Agent-Auth)
+
+| Method | Path | What it does |
+|---|---|---|
+| `POST` | `/agents/wallets` | Create a wallet as the authenticated agent |
+| `POST` | `/agents/{id}/sign-transaction` | Sign a Solana transaction |
+| `POST` | `/agents/{id}/x402-pay` | Pay an x402-gated resource with USDC |
+| `POST` | `/agents/events/batch` | Batch ingest up to 100 events |
+
+## Tools (per-agent capability allowlist)
+
+| Method | Path | What it does |
+|---|---|---|
+| `GET` | `/agents/{id}/tools` | List tools assigned to an agent |
+| `POST` | `/agents/{id}/tools` | Assign a tool to an agent |
+| `DELETE` | `/agents/{id}/tools/{toolId}` | Revoke a tool from an agent |
+
+## Skills (x402 marketplace)
+
+Skills are remote callable functions exposed over HTTP, priced and metered via x402.
+
+| Method | Path | What it does |
+|---|---|---|
+| `GET` | `/action/skills` | List skills (own private + all public) |
+| `POST` | `/action/skills` | Register a new skill |
+| `GET` | `/action/skills/{id}` | Get a skill |
+| `PATCH` | `/action/skills/{id}` | Update a skill (owner only) |
+| `DELETE` | `/action/skills/{id}` | Delete a skill (owner only) |
+| `POST` | `/action/skills/{id}/execute` | Execute a skill (agent SDK or API key) |
+| `POST` | `/action/skills/{id}/test` | Manually test a skill endpoint |
+| `GET` | `/action/skills/{id}/health` | Skill health status |
+| `GET` | `/action/skills/bazaar` | Public skill marketplace listing |

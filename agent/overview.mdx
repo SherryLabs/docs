@@ -1,0 +1,39 @@
+---
+title: "Agent Kit"
+description: "Budget-enforced AI agents that can sign transactions and pay for on-chain resources"
+sidebarTitle: "Overview"
+---
+
+The Agent Kit lets you ship AI agents that can hold a wallet, spend USDC, and sign Solana transactions — without ever being able to spend money they were not authorized to spend.
+
+## Core guarantee
+
+**Budget enforcement that cannot be bypassed.** If the SDK says "no budget", the payment does not happen. Enforcement is server-side and atomic — three independent budget layers plus a kill switch.
+
+## What you get
+
+- **Programmable agent lifecycle** — create, fund, pause, resume, rotate, and kill an agent
+- **Per-agent USDC wallet** — an isolated wallet workspace on Solana, signed by passkey at provisioning time
+- **3-layer budget guard** — infrastructure spend, token usage, and on-chain payments — enforced independently
+- **Kill switch** — global stop that fails-safe (blocks payments, lets infra/tokens fail-open)
+- **x402-pay** — pay HTTP 402 protected endpoints with USDC, with approval flow for amounts above threshold
+- **Skills marketplace** — register and execute skills callable from any agent via x402
+- **Event batching** — `llm_call`, `api_call`, `payment` telemetry batched and flushed every 10s
+
+## Authentication
+
+Two modes coexist on `/v1/agents/*`:
+
+| Caller | Header | Used by |
+|---|---|---|
+| Integrator (you) | `Authorization: Bearer <jwt>` or `ApiKey <key>` | Dashboard, your backend |
+| Agent (the SDK) | `X-Agent-Auth: <agentId>:<HMAC-SHA256(method+path+body, secret)>` | `@relayerfi/agent-sdk` at runtime |
+
+The HMAC header is built inside `HttpClient.buildAuthHeaders(method, path, body)` — agents never pass the plain `agentId:secret` outside that boundary.
+
+## SDK packages
+
+- **`@relayerfi/agent-sdk`** — `RelayerSDK` facade, `HttpClient`, `BudgetGuard`, `KillSwitch`, `EventBatcher`, `X402Handler`, `ApprovalHandler`, `x402fetch`, and LLM wrappers for Anthropic / OpenAI / Google
+- **`@relayerfi/skills-client`** — Mastra tools (`listSkillsTool`, `executeSkillTool`) for skill discovery and execution
+
+See [Flow Guide](/agent/flow-guide) for the create-agent → fund → spend lifecycle, and [Endpoints](/agent/endpoints) for the API surface.

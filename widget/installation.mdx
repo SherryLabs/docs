@@ -1,51 +1,51 @@
 ---
 title: "Installation"
-description: "Install @relayer-fi/widgets and configure providers for Turnkey Mode or Metadata Mode integration"
+description: "Install @relayerfi/widget-kit-react and configure providers for Passkey Signing or Metadata Mode integration"
 sidebarTitle: "Installation"
 ---
 
-Install the widget library and its peer dependencies, then configure providers based on your integration mode. Both Turnkey Mode and Metadata Mode start with the same base install.
+Install the widget library and its peer dependencies, then configure providers based on your integration mode. Both Passkey Signing and Metadata Mode start with the same base install.
 
 ## Install Packages
 
 <CodeGroup>
 
 ```bash npm
-npm install @relayer-fi/widgets wagmi viem @tanstack/react-query framer-motion
+npm install @relayerfi/widget-kit-react wagmi viem @tanstack/react-query framer-motion
 ```
 
 ```bash pnpm
-pnpm add @relayer-fi/widgets wagmi viem @tanstack/react-query framer-motion
+pnpm add @relayerfi/widget-kit-react wagmi viem @tanstack/react-query framer-motion
 ```
 
 ```bash yarn
-yarn add @relayer-fi/widgets wagmi viem @tanstack/react-query framer-motion
+yarn add @relayerfi/widget-kit-react wagmi viem @tanstack/react-query framer-motion
 ```
 
 </CodeGroup>
 
 <Note>
-`@relayer-fi/action-kit` and `@relayer-fi/widgets-core` are peer packages bundled internally — you do not install them separately.
+`@relayerfi/action-kit` and `@relayerfi/widget-kit-core` are peer packages bundled internally — you do not install them separately.
 </Note>
 
 ## Choose Your Integration Mode
 
 <Tabs>
-  <Tab title="Turnkey Mode">
+  <Tab title="Passkey Signing">
     <Info>
-    Turnkey Mode is for integrators whose wallets are managed through Relayer's Turnkey infrastructure. Each integrator gets a dedicated Turnkey sub-organization with passkey-based signing.
+    Passkey Signing is for integrators using Relayer's managed wallet stack. Each integrator gets a dedicated wallet workspace with passkey-based signing.
     </Info>
 
-    In addition to the base packages, Turnkey Mode integrators should be aware that:
-    - The widget handles Turnkey passkey prompts internally — no additional Turnkey SDK install is needed in your frontend
+    In addition to the base packages, Passkey Signing integrators should be aware that:
+    - The widget handles passkey prompts internally — no additional signing SDK install is needed in your frontend
     - Your users will see a biometric prompt (Face ID, fingerprint, security key) when signing transactions
     - Wallet creation and passkey registration are handled through the Relayer API and dashboard
 
-    Proceed to the wagmi configuration below — the Trigger component manages the Turnkey signing flow automatically.
+    Proceed to the wagmi configuration below — the Widget component manages the signing flow automatically.
   </Tab>
   <Tab title="Metadata Mode">
     <Info>
-    Metadata Mode is for integrators who bring their own wallet infrastructure (MPC, HSM, MetaMask, WalletConnect, or any EVM-compatible signer).
+    Metadata Mode is for integrators who bring their own wallet stack (MPC, HSM, MetaMask, WalletConnect, or any EVM-compatible signer).
     </Info>
 
     No additional packages are needed beyond the base install. In Metadata Mode:
@@ -150,14 +150,14 @@ wagmi v2 requires `WagmiProvider` and `QueryClientProvider` at the root of your 
 Widget components require the bundled stylesheet. Import it once in your entry point:
 
 ```typescript
-import '@relayer-fi/widgets/index.css';
+import '@relayerfi/widget-kit-react/index.css';
 ```
 
 For Next.js, add this import to `app/layout.tsx` or `pages/_app.tsx`.
 
 ## Verify Installation
 
-Once providers are configured and the CSS is imported, you can render a `<Trigger>` component. See the [Integration Guide](/widget/integration) for a full working example.
+Once providers are configured and the CSS is imported, you can render a `<Widget>` component. See the [Integration Guide](/widget/integration) for a full working example.
 
 ## Next Steps
 

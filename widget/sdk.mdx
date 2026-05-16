@@ -1,13 +1,13 @@
 ---
 title: "Relayer SDK"
-description: "TypeScript SDK for building blockchain action metadata — works identically in both Turnkey Mode and Metadata Mode"
+description: "TypeScript SDK for building blockchain action metadata — works identically in both Passkey Signing and Metadata Mode"
 sidebarTitle: "Relayer SDK"
 ---
 
 The Relayer SDK (`@sherrylinks/sdk`) is the TypeScript library for building blockchain action metadata. It defines the action schema, validates metadata before submission, and provides template helpers for common parameter types. Use it to create the metadata object that powers a Relayer Trigger.
 
 <Note>
-The Relayer SDK metadata layer is **mode-agnostic**. Whether your integration uses Turnkey Mode (passkey signing) or Metadata Mode (bring your own wallet), the metadata schema and validation are identical. The SDK defines *what* action to perform — the integration mode determines *how* signing happens.
+The Relayer SDK metadata layer is **mode-agnostic**. Whether your integration uses Passkey Signing (passkey) or Metadata Mode (bring your own wallet), the metadata schema and validation are identical. The SDK defines *what* action to perform — the integration mode determines *how* signing happens.
 </Note>
 
 ## Install
