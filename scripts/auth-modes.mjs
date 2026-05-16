@@ -106,8 +106,16 @@ export const authModes = {
 
   // ─────────────────────────────────────────────────────────────────────
   // Widget Actions — catalog reads + metadata generators (api-key default)
-  // /action/execute/swap/* is hidden from nav (passkey-required, may not
-  // align with current passkey model — flagged for BE review).
+  //
+  // /action/execute/swap/{quote,prepare,confirm} are architecturally
+  // sound (modern passkey-stamped SignedActivityDto pattern, confirmed
+  // by audit) BUT hidden from API Reference by policy: this surface
+  // only documents endpoints that a backend can complete with the api
+  // key alone. The swap confirm step requires a passkey ceremony in
+  // the browser. Integrators get end-user swap UX via the Widget Kit.
+  //
+  // POST /action/execute/swap (no suffix) is a zombie — no consumer in
+  // the modern stack. Tracked for removal via RFC.
   // ─────────────────────────────────────────────────────────────────────
   "GET /action/directory": "public",
 

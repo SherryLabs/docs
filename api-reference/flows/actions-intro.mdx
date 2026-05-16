@@ -36,7 +36,7 @@ The URL prefix `/action/builders/*` predates the consolidation of ActionKit into
 
 ## Not covered here
 
-- **Direct DEX swap execution** (`/action/execute/swap/*`) — these require a passkey-stamped activity on the confirm step. **Use the [Widget Kit](/widget/overview) for end-user swap UX** — it owns the passkey ceremony. Backend-only execution is not currently a supported integration path.
+- **Direct DEX swap execution** (`/action/execute/swap/*`) — these exist and use the modern passkey-stamped activity pattern, but they require a passkey ceremony in the browser on the `confirm` step. The API Reference documents only endpoints a backend can complete with the api key alone, so these live in the [Widget Kit](/widget/overview) — it owns the passkey UX end-to-end.
 - **Lending / yield / earn** — not exposed via API at this time.
 - **Approval flows** (ERC-20 allowances) — handled inside the widget. If you build your own UX from the metadata, you handle approvals yourself.
 

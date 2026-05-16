@@ -1,14 +1,16 @@
 ---
 title: "API Reference"
-description: "104 endpoints across 20 Kit-aligned tags. Try every call from the browser, in 17 languages, with an interactive playground."
+description: "Backend-callable REST endpoints across the Relayer platform. Every call is documented with an interactive playground in 17 languages."
 sidebarTitle: "Introduction"
 ---
 
-The Relayer API is a single REST surface organized into Kits — **Signing, Agent, Payout, Widget** — plus a small set of platform utilities (Balance). Every endpoint is documented on its own page in the sidebar, with an interactive playground that sends real requests against the sandbox or production environment.
+The Relayer API is a single REST surface organized into Kits — **Signing, Agent, Payout, Widget** — plus platform utilities. Every endpoint is documented on its own page in the sidebar, with an interactive playground that sends real requests against the sandbox or production environment.
 
 <Info>
-  Looking for the platform overview, two-layer narrative, or which Kit fits your use case? Start with the [Platform Overview](/get-started/overview).
+  **This reference documents only endpoints your backend can complete with the API key alone.** Flows that require a passkey ceremony in the browser (end-user wallet creation, transaction signing, direct swap execution, etc.) live in the [Signing Kit](/signing/overview), [Widget Kit](/widget/overview), or [Agent Kit](/agent/overview) — those Kits own the passkey UX end-to-end. See [Auth & Custody](/shared/auth-model) for the full split.
 </Info>
+
+Looking for the platform overview, two-layer narrative, or which Kit fits your use case? Start with the [Platform Overview](/get-started/overview).
 
 ## Environments
 
@@ -136,19 +138,7 @@ The sidebar groups endpoints by **resource**, not by Kit. If you want to read a 
     Generate addresses derived from a wallet's root key.
   </Card>
   <Card title="Transactions" icon="arrow-right-arrow-left">
-    Prepare, confirm, broadcast, retry, cancel.
-  </Card>
-  <Card title="Passkeys" icon="fingerprint">
-    Register, add, list, rename, delete WebAuthn credentials.
-  </Card>
-  <Card title="Recovery" icon="rotate">
-    Email-based passkey recovery flow.
-  </Card>
-  <Card title="Approvals" icon="user-check">
-    Human-in-the-loop gating for high-value transactions.
-  </Card>
-  <Card title="Policies" icon="shield-halved">
-    Per-wallet signing rules enforced inside the enclave.
+    Prepare, broadcast, retry, cancel. (Confirm requires passkey — see Signing Kit.)
   </Card>
   <Card title="Agents" icon="robot">
     Lifecycle, read, control, funding, runtime (HMAC), tools.
@@ -156,21 +146,35 @@ The sidebar groups endpoints by **resource**, not by Kit. If you want to read a 
   <Card title="Skills" icon="cube">
     Register, execute, and manage x402-priced skills.
   </Card>
-  <Card title="Widgets" icon="puzzle-piece">
-    Builders, Execute, Quote, Directory, Tokens — the canonical-protocol widget surface.
+  <Card title="Widget Actions" icon="puzzle-piece">
+    Metadata generators + protocol/token catalog — what the Widget Kit consumes.
   </Card>
-  <Card title="Payouts" icon="money-bill-transfer">
-    Accounts, On-ramp, Off-ramp — quote → setup → execute.
+  <Card title="Beneficiaries" icon="users">
+    Recipient CRUD, invites, bank-account registration.
   </Card>
-  <Card title="Recipients" icon="users">
-    Beneficiary CRUD, invites, bank-account registration.
+  <Card title="Global Payout" icon="money-bill-transfer">
+    Quote → setup → execute the sandwich payment flow (off-ramp).
   </Card>
-  <Card title="Orders" icon="list">
-    Unified order tracking across every rail.
+  <Card title="On-ramp" icon="building-columns">
+    Fiat deposit accounts (virtual accounts, SPEI, etc.) for on-ramping.
   </Card>
 </CardGroup>
 
-The Kits (Signing, Agent, Payout, Widget) are conceptual — they describe **what part of the platform you're integrating**. The resource groups above describe **what you're operating on**. See the [platform overview](/get-started/overview) for the Kit-level narrative.
+The Kits (Signing, Agent, Payout, Widget) are conceptual — they describe **what part of the platform you're integrating**. The resource groups above describe **what your backend operates on directly**. See the [platform overview](/get-started/overview) for the Kit-level narrative.
+
+## What's not in this reference
+
+<Tip>
+  Endpoints that require a passkey ceremony in the browser are documented inside their owning Kit, not here. This isn't deprecation — the architecture is sound. It's policy: this reference is the "what can my backend call?" surface.
+</Tip>
+
+| Capability | Where it lives | Why not here |
+|---|---|---|
+| Passkey registration, recovery, approvals | [Signing Kit](/signing/overview) | Browser-only WebAuthn ceremonies |
+| Wallet/address/transaction confirm with passkey | [Signing Kit](/signing/overview) | The confirm step takes a passkey-stamped activity |
+| Direct DEX swap execution (`/action/execute/swap/*`) | [Widget Kit](/widget/overview) | Confirm step requires passkey-stamped activity |
+| Signing policy + approval-config mutations | Hidden pending RFC | Destructive endpoints currently callable from API key alone — see [security RFC](https://github.com/SherryLabs/relayer/pull/18) |
+| Lending / yield / earn | Not exposed via API | Widget Kit only at present |
 
 ## Try it from the playground
 
