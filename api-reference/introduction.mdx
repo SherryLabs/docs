@@ -1,30 +1,217 @@
 ---
 title: "API Reference"
-description: "Explore Relayer's 136 endpoints across 30 Kit-aligned tags"
+description: "104 endpoints across 20 Kit-aligned tags. Try every call from the browser, in 17 languages, with an interactive playground."
 sidebarTitle: "Introduction"
 ---
 
-## Overview
+The Relayer API is a single REST surface organized into Kits — **Signing, Agent, Payout, Widget** — plus a small set of platform utilities (Balance). Every endpoint is documented on its own page in the sidebar, with an interactive playground that sends real requests against the sandbox or production environment.
 
-The Relayer API provides programmatic access to the full platform. Endpoints are organized by Kit -- Exchange, Signing, Payout, and Action -- so you can find the operations you need based on the domain you are integrating.
+<Info>
+  Looking for the platform overview, two-layer narrative, or which Kit fits your use case? Start with the [Platform Overview](/get-started/overview).
+</Info>
 
-## Base URL
+## Environments
 
-```
-https://api.relayer.fi
-```
+<Tabs>
+  <Tab title="Sandbox">
+    ```
+    https://relayer-api.onrender.com/v1
+    ```
+    Use the sandbox for development. Same endpoints, same payloads — testnet wallets, no real fiat.
+  </Tab>
+  <Tab title="Production">
+    ```
+    https://api.relayer.fi/v1
+    ```
+    Mainnet wallets, regulated fiat rails, real settlement. Use production once you've validated your integration in the sandbox.
+  </Tab>
+</Tabs>
+
+The playground in the sidebar lets you switch between environments per request.
 
 ## Authentication
 
-All API endpoints require authentication via the `Authorization` header with an `ApiKey` prefix. Include your API key in every request:
+The API supports three authentication modes. **Which one you use depends on who is calling.**
 
-```bash
-curl -H "Authorization: ApiKey rk_your_api_key" \
-  https://api.relayer.fi/v1/health
+<CardGroup cols={3}>
+  <Card title="API Key" icon="key">
+    Your backend → Relayer.
+    `Authorization: ApiKey rk_...`
+  </Card>
+  <Card title="Agent HMAC" icon="robot">
+    Agent SDK → Relayer.
+    Four headers, HMAC-SHA256 signature.
+  </Card>
+  <Card title="Session JWT" icon="user">
+    Browser → Relayer dashboard.
+    `Authorization: Bearer <jwt>`
+  </Card>
+</CardGroup>
+
+See [Authentication](/get-started/authentication) for the full matrix, header formats, and security best practices.
+
+## Response envelope
+
+Every response — success or error — uses the same shape so your client can always extract the same fields.
+
+<Tabs>
+  <Tab title="Success">
+    ```json
+    {
+      "success": true,
+      "message": "Wallet created",
+      "data": {
+        "walletId": "wallet_abc123",
+        "name": "My Wallet",
+        "createdAt": "2026-05-15T12:00:00.000Z"
+      },
+      "statusCode": 201,
+      "timestamp": "2026-05-15T12:00:00.000Z",
+      "path": "/v1/signing/wallets/confirm"
+    }
+    ```
+  </Tab>
+  <Tab title="Error">
+    ```json
+    {
+      "success": false,
+      "message": "Validation failed: amount must be positive",
+      "statusCode": 400,
+      "timestamp": "2026-05-15T12:00:00.000Z",
+      "path": "/v1/payout/accounts/quote"
+    }
+    ```
+  </Tab>
+  <Tab title="Paginated">
+    ```json
+    {
+      "success": true,
+      "data": [ /* items */ ],
+      "meta": {
+        "page": 1,
+        "limit": 50,
+        "total": 247,
+        "totalPages": 5
+      },
+      "statusCode": 200,
+      "timestamp": "2026-05-15T12:00:00.000Z",
+      "path": "/v1/orders"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+For the full error catalog (status codes, common business errors, retry guidance), see [Error Reference](/shared/error-reference).
+
+## Idempotency
+
+Mutation endpoints that can be retried safely accept an `Idempotency-Key` header:
+
+```
+Idempotency-Key: <your-uuid-v4>
 ```
 
-For details on obtaining and managing API keys, see the [Authentication guide](/get-started/authentication).
+We store the result for 24 hours. Retrying the same key returns the original response without re-executing the side effect.
 
-## Exploring Endpoints
+Endpoints that are **idempotent by design** (no key needed) are marked in their summary — e.g. `POST /v1/payout/offramp/withdraw-addresses` returns the existing record on conflict.
 
-Use the sidebar to browse endpoints by Kit. Each tag groups related operations so you can quickly find what you need for your integration.
+## Rate limits
+
+| Tier | Limit |
+|---|---|
+| Standard endpoints | 100 requests/minute per API key |
+| Financial endpoints (signing, payouts) | 20 requests/minute per API key |
+
+When exceeded, the API returns `429 Too Many Requests`. Back off with exponential delay (1s, 2s, 4s, 8s) and retry.
+
+## How endpoints are organized
+
+The sidebar groups endpoints by **resource**, not by Kit. If you want to read a wallet balance, you look under **Wallets** — not under "Balance" or "Platform". If you want to assign a tool to an agent, you look under **Agents → Tools**. Every verb sits on its noun.
+
+<CardGroup cols={3}>
+  <Card title="Wallets" icon="wallet">
+    Create, list, get, read balance, view activity.
+  </Card>
+  <Card title="Addresses" icon="address-card">
+    Generate addresses derived from a wallet's root key.
+  </Card>
+  <Card title="Transactions" icon="arrow-right-arrow-left">
+    Prepare, confirm, broadcast, retry, cancel.
+  </Card>
+  <Card title="Passkeys" icon="fingerprint">
+    Register, add, list, rename, delete WebAuthn credentials.
+  </Card>
+  <Card title="Recovery" icon="rotate">
+    Email-based passkey recovery flow.
+  </Card>
+  <Card title="Approvals" icon="user-check">
+    Human-in-the-loop gating for high-value transactions.
+  </Card>
+  <Card title="Policies" icon="shield-halved">
+    Per-wallet signing rules enforced inside the enclave.
+  </Card>
+  <Card title="Agents" icon="robot">
+    Lifecycle, read, control, funding, runtime (HMAC), tools.
+  </Card>
+  <Card title="Skills" icon="cube">
+    Register, execute, and manage x402-priced skills.
+  </Card>
+  <Card title="Widgets" icon="puzzle-piece">
+    Builders, Execute, Quote, Directory, Tokens — the canonical-protocol widget surface.
+  </Card>
+  <Card title="Payouts" icon="money-bill-transfer">
+    Accounts, On-ramp, Off-ramp — quote → setup → execute.
+  </Card>
+  <Card title="Recipients" icon="users">
+    Beneficiary CRUD, invites, bank-account registration.
+  </Card>
+  <Card title="Orders" icon="list">
+    Unified order tracking across every rail.
+  </Card>
+</CardGroup>
+
+The Kits (Signing, Agent, Payout, Widget) are conceptual — they describe **what part of the platform you're integrating**. The resource groups above describe **what you're operating on**. See the [platform overview](/get-started/overview) for the Kit-level narrative.
+
+## Try it from the playground
+
+Every endpoint page has an **interactive playground** on the right side:
+
+<Steps>
+  <Step title="Choose an environment">
+    Switch between Sandbox and Production from the server dropdown above the request panel.
+  </Step>
+  <Step title="Enter your auth">
+    Paste your API key into the `Authorization` field. It prefixes `ApiKey` automatically.
+  </Step>
+  <Step title="Fill the parameters">
+    Path, query, and body parameters are auto-populated from the schema. Edit them inline.
+  </Step>
+  <Step title="Send">
+    The response panel shows the real response, the status code, and copy-able cURL / language snippets for 17 languages (bash, Node.js, Python, Go, Java, Ruby, PowerShell, Swift, C#, .NET, TypeScript, Kotlin, Rust, Dart, C, C++, PHP).
+  </Step>
+</Steps>
+
+<Tip>
+  The playground sends real requests. Use the sandbox while exploring — production calls move real money.
+</Tip>
+
+## Use this documentation with AI
+
+This documentation is **MCP-ready**. AI tools like Claude Code, Cursor, ChatGPT, and Windsurf can connect directly to it and query endpoints, params, and examples without leaving your terminal or editor.
+
+<CardGroup cols={2}>
+  <Card title="Connect via MCP" icon="plug" href="/get-started/ai-assistants">
+    Add Relayer docs to Claude Code, Cursor, or any MCP-compatible tool with one command.
+  </Card>
+  <Card title="Open this page in Claude / ChatGPT" icon="sparkles">
+    Click the **Ask AI** button in the page header to send the current page as context to your preferred LLM.
+  </Card>
+</CardGroup>
+
+The contextual menu (top of every page) also exposes **Copy as Markdown**, **View as Markdown**, and direct deeplinks to ChatGPT / Claude / Perplexity / Cursor / VS Code with the page content prefilled.
+
+## Get help
+
+- **Email**: [support@relayer.fi](mailto:support@relayer.fi)
+- **GitHub**: [github.com/relayerfi](https://github.com/relayerfi)
+- **Status**: live on the production base URL — `GET /v1/` returns service health

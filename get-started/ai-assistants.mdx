@@ -1,0 +1,143 @@
+---
+title: "AI Assistants"
+description: "Connect Relayer docs to Claude Code, Cursor, ChatGPT, and any MCP-compatible tool"
+sidebarTitle: "AI Assistants"
+---
+
+The Relayer documentation ships with first-class AI integration. You don't need to copy/paste pages into a chat anymore — your AI assistant can query the docs directly as a tool.
+
+<Info>
+  Built into Mintlify: an MCP server, contextual menus, and `llms.txt` — all already live for this site.
+</Info>
+
+## Why connect via MCP
+
+The **Model Context Protocol** lets AI clients (Claude Code, Cursor, ChatGPT, Windsurf, Devin, VS Code) search and read this documentation **as a tool call** during a conversation. Concretely:
+
+- Your AI assistant has up-to-date answers about every endpoint, every parameter, every flow — not outdated training data
+- The assistant decides when to consult the docs; you don't have to attach pages manually
+- Auth, search, and full-page retrieval all work out of the box
+
+## The MCP server URL
+
+```
+https://docs.relayer.fi/mcp
+```
+
+This URL exposes two tools to any connected client:
+- **search** — finds relevant snippets across all docs, returns titles + links
+- **query docs filesystem** — retrieves full page content with shell-style commands
+
+## Connect to Claude Code
+
+Run this in your terminal:
+
+```bash
+claude mcp add --transport http relayer-docs https://docs.relayer.fi/mcp
+```
+
+That's it. New Claude Code sessions will automatically discover and use the Relayer docs as a tool.
+
+Verify it's connected:
+
+```bash
+claude mcp list
+```
+
+## Connect to Cursor
+
+Add this to your `~/.cursor/mcp.json` (or the project's `.cursor/mcp.json` for per-repo scope):
+
+```json
+{
+  "mcpServers": {
+    "relayer-docs": {
+      "url": "https://docs.relayer.fi/mcp"
+    }
+  }
+}
+```
+
+Restart Cursor. The MCP server appears in Settings → MCP.
+
+## Connect to VS Code
+
+VS Code's MCP integration is configured via the same `mcp.json` format inside your workspace:
+
+```json
+{
+  "mcpServers": {
+    "relayer-docs": {
+      "url": "https://docs.relayer.fi/mcp"
+    }
+  }
+}
+```
+
+Or use the **Connect to VS Code** button in the contextual menu on any page — it opens VS Code with the server preinstalled.
+
+## Connect to ChatGPT / Claude / Perplexity / Grok
+
+These web-based assistants don't use MCP directly. Instead, the documentation gives them context **per page** through the contextual menu:
+
+<Steps>
+  <Step title="Open any page in the docs">
+    Navigate to the page you want to ask about.
+  </Step>
+  <Step title="Click the contextual button (top right)">
+    You'll see options for **Copy as Markdown**, **View as Markdown**, and direct deeplinks to ChatGPT / Claude / Perplexity / Grok / Google AI Studio.
+  </Step>
+  <Step title="Pick a target">
+    The chosen tool opens with the current page already attached as context. Ask your question — the assistant has the page content available immediately.
+  </Step>
+</Steps>
+
+## Use `llms.txt`
+
+Every Mintlify-hosted docs site exposes a curated index of LLM-friendly Markdown at:
+
+```
+https://docs.relayer.fi/llms.txt
+```
+
+Feed this URL to any LLM workflow that wants a complete machine-readable summary of the documentation tree. It's an indexed table of contents with every page link in plain text — ideal for retrieval-augmented generation pipelines or one-shot doc ingestion.
+
+For full page content, individual pages are available as Markdown at `<page-url>.md`:
+
+```
+https://docs.relayer.fi/api-reference/introduction.md
+https://docs.relayer.fi/signing/flow-guide.md
+```
+
+## What the assistant can answer well
+
+Once connected, your AI tool can answer questions like:
+
+- *"How do I create an agent with a $500 monthly USDC budget?"* — it queries `/agent/flow-guide` and `POST /v1/agents/{id}/budget`
+- *"What headers does the agent SDK send?"* — it pulls `get-started/authentication`
+- *"Generate a Node.js snippet to prepare and confirm a Solana transaction"* — it combines the signing flow guide with the endpoint params
+- *"Which endpoints in Payout are public vs dashboard-only?"* — it consults the API Reference tags and the architecture page
+
+## What it can't answer (yet)
+
+The MCP server returns what's in the docs. It doesn't have access to:
+
+- Your workspace's specific API keys, agents, or wallet IDs (use the dashboard for those)
+- Live data from your account (balances, orders, etc.) — for that, the assistant would need to call the API itself with your credentials
+- Information not published in this site (internal roadmap, pricing for enterprise tiers, etc.)
+
+## Get help
+
+- **MCP issues**: try `claude mcp remove relayer-docs` and re-add. If problems persist, [open a support email](mailto:support@relayer.fi).
+- **AI assistants giving wrong answers**: this likely means the docs themselves are unclear or stale — please report at [support@relayer.fi](mailto:support@relayer.fi) and we'll fix the page.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/get-started/quickstart">
+    Make your first API call in under 5 minutes.
+  </Card>
+  <Card title="API Reference" icon="terminal" href="/api-reference/introduction">
+    Browse the full endpoint surface with an interactive playground.
+  </Card>
+</CardGroup>

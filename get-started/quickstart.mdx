@@ -16,31 +16,30 @@ This guide walks you through making your first Relayer API call. You will verify
 Relayer provides two environments. Choose the one that matches your stage:
 
 | Environment | Base URL | Use for |
-|-------------|----------|---------|
-| **Sandbox** | `https://sandbox.relayer.fi` | Testing and development |
-| **Production** | `https://api.relayer.fi` | Live operations |
+|---|---|---|
+| **Sandbox** | `https://relayer-api.onrender.com/v1` | Testing and development |
+| **Production** | `https://api.relayer.fi/v1` | Live operations |
 
 <Warning>
-  Sandbox runs on Render free tier — the first request after idle may take 30-60 seconds to cold-start.
+  Sandbox runs on Render — the first request after idle may take 30-60 seconds to cold-start.
 </Warning>
 
-## Step 1: Verify Connectivity
+## Step 1: Verify connectivity
 
-Start with the health check endpoint. It requires no authentication and confirms the API is reachable.
+Start with the unauthenticated root endpoint to confirm the API is reachable.
 
 <Tabs>
   <Tab title="Sandbox">
     <CodeGroup>
 
     ```bash cURL
-    curl https://sandbox.relayer.fi/health
+    curl https://relayer-api.onrender.com/v1/
     ```
 
     ```typescript Node.js
-    const response = await fetch("https://sandbox.relayer.fi/health");
+    const response = await fetch("https://relayer-api.onrender.com/v1/");
     const data = await response.json();
     console.log(data);
-    // Expected: { "status": "ok" }
     ```
 
     </CodeGroup>
@@ -49,29 +48,22 @@ Start with the health check endpoint. It requires no authentication and confirms
     <CodeGroup>
 
     ```bash cURL
-    curl https://api.relayer.fi/health
+    curl https://api.relayer.fi/v1/
     ```
 
     ```typescript Node.js
-    const response = await fetch("https://api.relayer.fi/health");
+    const response = await fetch("https://api.relayer.fi/v1/");
     const data = await response.json();
     console.log(data);
-    // Expected: { "status": "ok" }
     ```
 
     </CodeGroup>
   </Tab>
 </Tabs>
 
-You should receive:
+You should receive a `200` with a basic service descriptor.
 
-```json
-{
-  "status": "ok"
-}
-```
-
-## Step 2: Set Up Your Environment
+## Step 2: Set up your environment
 
 Store your API key and base URL as environment variables:
 
@@ -80,12 +72,12 @@ Store your API key and base URL as environment variables:
     <CodeGroup>
 
     ```bash Terminal
-    export RELAYER_BASE_URL="https://sandbox.relayer.fi"
+    export RELAYER_BASE_URL="https://relayer-api.onrender.com/v1"
     export RELAYER_API_KEY="rk_client_key_v1_your_key_here"
     ```
 
     ```text .env file
-    RELAYER_BASE_URL=https://sandbox.relayer.fi
+    RELAYER_BASE_URL=https://relayer-api.onrender.com/v1
     RELAYER_API_KEY=rk_client_key_v1_your_key_here
     ```
 
@@ -95,12 +87,12 @@ Store your API key and base URL as environment variables:
     <CodeGroup>
 
     ```bash Terminal
-    export RELAYER_BASE_URL="https://api.relayer.fi"
+    export RELAYER_BASE_URL="https://api.relayer.fi/v1"
     export RELAYER_API_KEY="rk_client_key_v1_your_production_key"
     ```
 
     ```text .env file
-    RELAYER_BASE_URL=https://api.relayer.fi
+    RELAYER_BASE_URL=https://api.relayer.fi/v1
     RELAYER_API_KEY=rk_client_key_v1_your_production_key
     ```
 
@@ -108,14 +100,14 @@ Store your API key and base URL as environment variables:
   </Tab>
 </Tabs>
 
-## Step 3: Make an Authenticated Request
+## Step 3: Make an authenticated request
 
-Now make a request that requires authentication. This example lists available exchange quotes:
+Now make an authenticated call. This example lists the wallets in your workspace — a safe, read-only operation that confirms auth, scope, and module activation in one go.
 
 <CodeGroup>
 
 ```bash cURL
-curl -X GET $RELAYER_BASE_URL/v1/exchange/quotes \
+curl -X GET $RELAYER_BASE_URL/signing/wallets \
   -H "Authorization: ApiKey $RELAYER_API_KEY" \
   -H "Content-Type: application/json"
 ```
@@ -124,18 +116,31 @@ curl -X GET $RELAYER_BASE_URL/v1/exchange/quotes \
 const baseUrl = process.env.RELAYER_BASE_URL;
 const apiKey = process.env.RELAYER_API_KEY;
 
-const response = await fetch(
-  `${baseUrl}/v1/exchange/quotes`,
-  {
-    headers: {
-      "Authorization": `ApiKey ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-  }
-);
+const response = await fetch(`${baseUrl}/signing/wallets`, {
+  headers: {
+    Authorization: `ApiKey ${apiKey}`,
+    "Content-Type": "application/json",
+  },
+});
 
 const result = await response.json();
 console.log(JSON.stringify(result, null, 2));
+```
+
+```python Python
+import os, requests
+
+base_url = os.environ["RELAYER_BASE_URL"]
+api_key = os.environ["RELAYER_API_KEY"]
+
+response = requests.get(
+    f"{base_url}/signing/wallets",
+    headers={
+        "Authorization": f"ApiKey {api_key}",
+        "Content-Type": "application/json",
+    },
+)
+print(response.json())
 ```
 
 </CodeGroup>
@@ -145,16 +150,16 @@ A successful response looks like:
 ```json
 {
   "success": true,
-  "message": "Success",
+  "message": "Wallets retrieved",
   "data": [],
   "statusCode": 200,
-  "timestamp": "2026-03-28T12:00:00.000Z",
-  "path": "/v1/exchange/quotes"
+  "timestamp": "2026-05-15T12:00:00.000Z",
+  "path": "/v1/signing/wallets"
 }
 ```
 
 <Tip>
-  An empty `data` array is expected on a fresh account. It means the API authenticated your request successfully — you just have not created any quotes yet.
+  An empty `data` array is expected on a fresh workspace. It means the API authenticated your request successfully — you just haven't created any wallets yet.
 </Tip>
 
 ## Step 4: Explore the Kits
@@ -162,20 +167,17 @@ A successful response looks like:
 Now that you are authenticated, explore the Kit that matches your use case:
 
 <CardGroup cols={2}>
-  <Card title="Exchange Kit" icon="arrows-rotate" href="/exchange/overview">
-    Build OTC exchange flows with quotes, spread, and settlement.
-  </Card>
   <Card title="Signing Kit" icon="key" href="/signing/overview">
-    Create wallets and sign transactions with Turnkey.
+    Create self-custodial wallets and sign transactions with passkeys.
   </Card>
   <Card title="Payout Kit" icon="money-bill-transfer" href="/payout/overview">
-    Set up fiat payout rails and manage recipients.
+    Set up fiat on/off-ramp rails and manage recipients.
   </Card>
-  <Card title="Action Kit" icon="bolt" href="/action/overview">
-    Register and deploy blockchain actions for any platform.
+  <Card title="Agent Kit" icon="robot" href="/agent/overview">
+    Ship budget-enforced AI agents that can sign and pay for resources.
   </Card>
   <Card title="Widget Kit" icon="window-restore" href="/widget/overview">
-    Embed pre-built swap, earn, transfer, and payment widgets.
+    Embed canonical swap, transfer, and crosschain widgets in your app.
   </Card>
 </CardGroup>
 
@@ -183,7 +185,7 @@ Now that you are authenticated, explore the Kit that matches your use case:
 
 | Problem | Solution |
 |---------|----------|
-| `Connection refused` | Check `RELAYER_BASE_URL` — sandbox: `https://sandbox.relayer.fi`, production: `https://api.relayer.fi` |
+| `Connection refused` | Check `RELAYER_BASE_URL` — sandbox: `https://relayer-api.onrender.com/v1`, production: `https://api.relayer.fi/v1` |
 | `401 Unauthorized` | Verify your `Authorization` header uses `ApiKey` prefix (not `Bearer`) |
 | `404 Not Found` | Check the endpoint path starts with `/v1/` |
 | Slow first response | Sandbox cold-starts after idle (30-60s). Production does not have this delay. |

@@ -1,62 +1,39 @@
 ---
 title: "Relayer Documentation"
-description: "Build crypto B2B infrastructure with Relayer's Kit-based platform"
+description: "Self-custodial stablecoin infrastructure — built for the operators of today and the agents of tomorrow"
 ---
 
 ## Welcome to Relayer
 
-Relayer is a crypto B2B infrastructure platform that gives operators everything they need to build compliant financial products. The platform is organized into five Kits, each covering a distinct domain of functionality.
+**Relayer is the financial platform for stablecoin operators today, and the AI agents they'll deploy tomorrow.**
+
+We give you a single self-custodial backend with three primitives:
+
+- **Wallets** — passkey-signed, hardware-secured, multi-chain (EVM + Solana). Relayer never holds your private keys.
+- **Fiat rails** — regulated on-ramp and off-ramp with local virtual accounts (CLABE/SPEI, ACH, more coming), KYB built in.
+- **Programmable budgets** — every wallet can have spend limits, approval thresholds, and signing policies enforced before any transaction is processed.
+
+The same primitives that let your **team** operate a compliant stablecoin business today let your **agents** operate it tomorrow — with budgets that cannot be bypassed, even by the LLM driving them.
+
+## Pick your path
 
 <Columns cols={2}>
-  <Card
-    title="Get Started"
-    icon="rocket"
-    href="/get-started/overview"
-  >
-    Learn what Relayer is, how authentication works, and make your first API call.
+  <Card title="Get Started" icon="rocket" href="/get-started/overview">
+    Understand the platform, set up authentication, and make your first API call.
   </Card>
-  <Card
-    title="Exchange Kit"
-    icon="arrows-rotate"
-    href="/exchange/overview"
-  >
-    OTC exchange infrastructure -- quotes, spread management, and settlement.
+  <Card title="Signing Kit" icon="key" href="/signing/overview">
+    Self-custodial wallets, prepare/confirm signing, passkeys, policies, and approvals.
   </Card>
-  <Card
-    title="Signing Kit"
-    icon="key"
-    href="/signing/overview"
-  >
-    Wallet management, escrow accounts, and transaction signing.
+  <Card title="Payout Kit" icon="money-bill-transfer" href="/payout/overview">
+    Fiat on/off-ramp, virtual accounts, recipient management, and order tracking.
   </Card>
-  <Card
-    title="Payout Kit"
-    icon="money-bill-transfer"
-    href="/payout/overview"
-  >
-    Payout rails, recipient management, and settlement tracking.
+  <Card title="Agent Kit" icon="robot" href="/agent/overview">
+    Budget-enforced AI agents with their own wallets, x402 payments, and skills marketplace.
   </Card>
-  <Card
-    title="Action Kit"
-    icon="bolt"
-    href="/action/overview"
-  >
-    Blockchain actions, action builders, and token management for on-chain operations.
+  <Card title="Widget Kit" icon="puzzle-piece" href="/widget/overview">
+    Embeddable React components for canonical protocols — swap, transfer, crosschain.
   </Card>
-  <Card
-    title="Widget Kit"
-    icon="puzzle-piece"
-    href="/widget/overview"
-  >
-    Pre-built UI components for embedding Relayer functionality in your app.
+  <Card title="API Reference" icon="terminal" href="/api-reference/introduction">
+    Interactive schemas across every Kit endpoint, with a try-it playground.
   </Card>
 </Columns>
-
-<Card
-  title="API Reference"
-  icon="terminal"
-  href="/api-reference/introduction"
-  horizontal
->
-  Explore all 136 endpoints across 30 Kit-aligned tags with the interactive API playground.
-</Card>
