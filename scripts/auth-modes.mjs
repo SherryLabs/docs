@@ -105,11 +105,11 @@ export const authModes = {
   "GET /agents/{id}/status": "hmac-or-api-key",
 
   // ─────────────────────────────────────────────────────────────────────
-  // Action / Widget — public quote, rest ApiKey
+  // Widget Actions — catalog reads + metadata generators (api-key default)
+  // /action/execute/swap/* is hidden from nav (passkey-required, may not
+  // align with current passkey model — flagged for BE review).
   // ─────────────────────────────────────────────────────────────────────
-  "GET /action/execute/swap/quote": "public",
   "GET /action/directory": "public",
-  "POST /action/execute/swap/confirm": "api-key+passkey",
 
   // ─────────────────────────────────────────────────────────────────────
   // Skills — execute is hmac-or-api-key (callable by agents OR by integrator)

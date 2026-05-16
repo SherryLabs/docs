@@ -1,45 +1,47 @@
 ---
-title: "Actions — overview"
+title: "Widget Actions — overview"
 sidebarTitle: "Overview"
-description: "Transaction builders, swap execution, and protocol metadata that power the Widget Kit — and are independently callable for self-built UX."
+description: "The metadata + catalog endpoints that power the Widget Kit. Use these to configure widget instances dynamically and discover what protocols/tokens are supported."
 ---
 
-The Actions API exposes the same primitives the [Widget Kit](/widget/overview) uses internally: transaction builders, swap routing, and protocol/token metadata. If the prebuilt widget covers your use case, **start there** — it handles UI, passkey UX, and chain switching for you. The endpoints below are documented so you can build your own UI on top of the same primitives.
-
-## What's in this group
+These endpoints power the [Widget Kit](/widget/overview). They split into two families:
 
 <CardGroup cols={2}>
-  <Card title="Builders" icon="hammer">
-    Serialize an on-chain transaction (swap, transfer, cross-chain). No signing, no broadcast — just the encoded calldata + chain hints. You sign and broadcast yourself (or hand off to the Signing flow).
+  <Card title="Metadata generators" icon="cube">
+    `POST /action/builders/*` — return a **JSON configuration** the widget renders as an Action (swap, transfer, cross-chain transfer, cross-chain bridge). Useful when you want your backend to dynamically configure widget instances per user, per region, or per offer.
   </Card>
-  <Card title="Execute (Swap)" icon="arrows-rotate">
-    Quote + prepare/confirm pair for direct DEX swaps. The `confirm` step requires a passkey-stamped activity (same pattern as `transactions/confirm`) — backend alone cannot complete it.
-  </Card>
-  <Card title="Directory" icon="book">
-    Catalog of supported protocols per chain. Used to discover what's wired in before calling a builder.
-  </Card>
-  <Card title="Tokens" icon="coins">
-    Token list for a given `(chain, protocol)`. Used to populate UI dropdowns and validate destination tokens.
+  <Card title="Catalog" icon="book">
+    `GET /action/directory` and `GET /action/tokens/{chain}/{protocol}` — discover what protocols and tokens are supported. Used internally by the widget to populate pickers; also useful for "what can my user do?" backend checks.
   </Card>
 </CardGroup>
 
-## Why these aren't backend-only
+## What metadata generators actually return
 
-The Widget Kit is the recommended integration path — it ships the swap, transfer, and bridge UX for you. These endpoints exist for two cases:
+Despite the URL prefix `builders/`, these endpoints **do not build transactions** — they return widget configuration JSON:
 
-1. **Self-built UX** — you want full control over the swap UI and don't want to embed the Sherry widget. Use Builders to construct the tx, then drive your own signing flow.
-2. **Backend orchestration** — you need to quote, validate, or pre-build a transaction server-side before handing it to the user's device.
+```json
+{
+  "success": true,
+  "metadata": {
+    /* widget-renderable Action schema */
+  }
+}
+```
 
-For the swap `prepare → confirm` flow specifically, the confirm step **requires a passkey-stamped activity** in the request body. Your backend can prepare; the user's device (with the registered passkey) must sign. This mirrors the [transaction signing flow](/api-reference/flows/transaction-signing).
+The widget consumes the `metadata` payload to render the swap/transfer/bridge UI for the end user. Signing and broadcasting happen via the widget's signing flow, not via these endpoints.
 
-## What's not here
+## Why this isn't named "Builders" anymore
 
-- **Lending / yield / earn** — not currently exposed via API.
-- **Cross-chain bridge UX** — `POST /action/builders/crosschain-bridge` returns the serialized tx, but the destination-chain settlement is async (no `prepare/confirm` pair). Track via your own indexer or the Widget Kit's lifecycle events.
-- **Approval flows** — ERC-20 approvals are handled by the Widget Kit. If you build your own UX, you handle approvals yourself before calling the builder.
+The URL prefix `/action/builders/*` predates the consolidation of ActionKit into Widget Kit. The endpoints generate **widget metadata**, not transaction calldata. We've kept the URL stable to avoid breaking existing integrations, but the docs label reflects what they actually do.
+
+## Not covered here
+
+- **Direct DEX swap execution** (`/action/execute/swap/*`) — these require a passkey-stamped activity on the confirm step. **Use the [Widget Kit](/widget/overview) for end-user swap UX** — it owns the passkey ceremony. Backend-only execution is not currently a supported integration path.
+- **Lending / yield / earn** — not exposed via API at this time.
+- **Approval flows** (ERC-20 allowances) — handled inside the widget. If you build your own UX from the metadata, you handle approvals yourself.
 
 ## Related
 
-- [Widget Kit overview](/widget/overview) — the prebuilt UI for these primitives.
-- [Transaction signing flow](/api-reference/flows/transaction-signing) — for the passkey-stamped confirm pattern used by `/action/execute/swap/confirm`.
-- [Auth & Custody model](/shared/auth-model) — explains why the confirm step needs a passkey and the prepare step doesn't.
+- [Widget Kit overview](/widget/overview) — the prebuilt UI consumer for these endpoints.
+- [Widget SDK reference](/widget/sdk) — JS/TS methods for embedding.
+- [Auth & Custody model](/shared/auth-model) — explains why end-user actions need a passkey on the device.

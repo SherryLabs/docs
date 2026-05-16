@@ -4911,7 +4911,7 @@
     },
     "/action/execute/swap/quote": {
       "get": {
-        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: public.** No authentication required.\n<!-- relayer:auth-badge:end -->\n\nReturns the best swap quote across all available protocols for the given chain. If no protocol is specified, the route optimizer queries all available DEXes in parallel and returns the best price. No authentication required.",
+        "description": "Returns the best swap quote across all available protocols for the given chain. If no protocol is specified, the route optimizer queries all available DEXes in parallel and returns the best price. No authentication required.",
         "operationId": "QuoteController_getSwapQuote",
         "parameters": [
           {
@@ -5194,7 +5194,7 @@
     },
     "/action/execute/swap/confirm": {
       "post": {
-        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: API key + passkey stamp.** Your backend calls this with `ApiKey`, but the body includes a passkey-stamped activity produced by WebAuthn in the user's browser. **Cannot be completed by backend alone.** See [Auth & Custody](/shared/auth-model).\n<!-- relayer:auth-badge:end -->\n\nAccepts the passkey-stamped Turnkey activity for a previously prepared swap and broadcasts the transaction on-chain.",
+        "description": "Accepts the passkey-stamped Turnkey activity for a previously prepared swap and broadcasts the transaction on-chain.",
         "operationId": "ExecuteController_confirmSwap",
         "parameters": [
           {

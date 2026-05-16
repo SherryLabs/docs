@@ -176,7 +176,7 @@
             ]
           },
           {
-            "group": "Actions",
+            "group": "Widget Actions",
             "openapi": "api-reference/openapi.json",
             "pages": [
               "api-reference/flows/actions-intro",
@@ -184,10 +184,6 @@
               "POST /action/builders/transfer-native",
               "POST /action/builders/crosschain-transfer",
               "POST /action/builders/crosschain-bridge",
-              "GET /action/execute/swap/quote",
-              "POST /action/execute/swap",
-              "POST /action/execute/swap/prepare",
-              "POST /action/execute/swap/confirm",
               "GET /action/directory",
               "GET /action/tokens/{chain}/{protocol}"
             ]
