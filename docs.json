@@ -176,26 +176,6 @@
             ]
           },
           {
-            "group": "Signing",
-            "openapi": "api-reference/openapi.json",
-            "pages": [
-              "POST /signing/passkeys/challenge",
-              "GET /signing/passkeys",
-              "PATCH /signing/passkeys/{id}",
-              "POST /signing/recovery/initiate",
-              "GET /signing/recovery/context",
-              "GET /signing/recovery/migration-eligibility",
-              "GET /signing/approvals",
-              "POST /signing/approvals/{id}/reject",
-              "GET /signing/approval-config",
-              "PATCH /signing/approval-config",
-              "GET /signing/policies",
-              "POST /signing/policies",
-              "PATCH /signing/policies/{id}",
-              "DELETE /signing/policies/{id}"
-            ]
-          },
-          {
             "group": "Swap",
             "openapi": {
               "source": "api-reference/openapi.json",
