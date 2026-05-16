@@ -2870,6 +2870,18 @@
         "summary": "Get agent status and kill-switch state (HMAC or API key)",
         "tags": [
           "Agents"
+        ],
+        "x-codeSamples": [
+          {
+            "lang": "bash",
+            "label": "cURL (integrator)",
+            "source": "curl https://api.relayer.fi/v1/agents/$AGENT_ID/status \\\n  -H \"Authorization: ApiKey $RELAYER_API_KEY\""
+          },
+          {
+            "lang": "TypeScript",
+            "label": "Node.js (SDK, agent-side)",
+            "source": "import { RelayerSDK } from \"@relayerfi/agent-sdk\";\n\nconst sdk = new RelayerSDK({ /* ... */ });\n\n// The SDK polls this every 30s automatically via KillSwitch — you rarely\n// hit it manually. Use the getter to read the cached state synchronously:\nif (sdk.isKillSwitchActive) {\n  // skip payment operations\n}\n\n// Direct call:\nconst { data } = await sdk.http.get(`/v1/agents/${sdk.agentId}/status`);\n// data.killSwitch (boolean) — true iff status === 'killed'\n// data.status — full lifecycle: active | suspended | draining | killed | paused | pending_policies"
+          }
         ]
       }
     },

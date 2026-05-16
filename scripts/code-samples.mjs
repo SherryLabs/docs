@@ -2398,6 +2398,33 @@ const response = await fetch(
   // Agents — remaining reads/control
   // ─────────────────────────────────────────────────────────────────────
 
+  "GET /agents/{id}/status": [
+    {
+      lang: "bash",
+      label: "cURL (integrator)",
+      source: `curl ${API}/agents/$AGENT_ID/status \\
+  -H "Authorization: ApiKey $RELAYER_API_KEY"`,
+    },
+    {
+      lang: "TypeScript",
+      label: "Node.js (SDK, agent-side)",
+      source: `import { RelayerSDK } from "@relayerfi/agent-sdk";
+
+const sdk = new RelayerSDK({ /* ... */ });
+
+// The SDK polls this every 30s automatically via KillSwitch — you rarely
+// hit it manually. Use the getter to read the cached state synchronously:
+if (sdk.isKillSwitchActive) {
+  // skip payment operations
+}
+
+// Direct call:
+const { data } = await sdk.http.get(\`/v1/agents/\${sdk.agentId}/status\`);
+// data.killSwitch (boolean) — true iff status === 'killed'
+// data.status — full lifecycle: active | suspended | draining | killed | paused | pending_policies`,
+    },
+  ],
+
   "GET /agents/{id}/wallet-balance": [
     {
       lang: "bash",
