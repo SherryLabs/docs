@@ -226,10 +226,7 @@
               "POST /payout/accounts/quote",
               "POST /payout/accounts/execute",
               "GET /payout/accounts",
-              "GET /payout/accounts/{reference}/status",
-              "GET /orders",
-              "GET /orders/{id}",
-              "POST /orders/{id}/cancel"
+              "GET /payout/accounts/{reference}/status"
             ]
           },
           {
