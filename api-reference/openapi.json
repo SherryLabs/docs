@@ -24,7 +24,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(\"https://api.relayer.fi/v1/\");\n// Returns the basic service descriptor. No auth required."
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/balance/token": {
@@ -1642,7 +1643,7 @@
     },
     "/signing/policies/{id}": {
       "patch": {
-        "description": "Updates a signing policy by creating a new Turnkey policy and deleting the old one (rotation).",
+        "description": "<!-- relayer:security-warning:start -->\n> **⚠ Destructive — can weaken wallet protection.** Modifying a policy can raise value caps, add allowed destinations, or relax time windows. A stolen API key can weaken constraints before exfiltrating funds. No passkey-stamp requirement today. Audit every policy change against an immutable log.\n<!-- relayer:security-warning:end -->\n\nUpdates a signing policy by creating a new Turnkey policy and deleting the old one (rotation).",
         "operationId": "PolicyController_updatePolicy",
         "parameters": [
           {
@@ -1706,7 +1707,7 @@
         ]
       },
       "delete": {
-        "description": "Deletes a signing policy from Turnkey and marks it deleted in the database.",
+        "description": "<!-- relayer:security-warning:start -->\n> **⚠ Destructive — removes a wallet protection.** Deleting a policy means the wallet can sign transactions the policy previously blocked (value caps, destination allowlists, time windows). Today this is callable with a stolen API key — there is no passkey-stamp requirement yet. Gate this call behind your own multi-admin workflow until the API requires passkey-stamping. See [Auth & Custody](/shared/auth-model).\n<!-- relayer:security-warning:end -->\n\nDeletes a signing policy from Turnkey and marks it deleted in the database.",
         "operationId": "PolicyController_deletePolicy",
         "parameters": [
           {
@@ -1792,7 +1793,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(\"https://api.relayer.fi/v1/agents\", {\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\nconst { data } = await response.json();\n// data: array of { id, name, status, createdAt, ... }"
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/agents/prepare": {
@@ -1852,7 +1854,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(\"https://api.relayer.fi/v1/agents/prepare\", {\n  method: \"POST\",\n  headers: {\n    Authorization: `ApiKey ${process.env.RELAYER_API_KEY}`,\n    \"Content-Type\": \"application/json\",\n  },\n  body: JSON.stringify({\n    name: \"BI Reporter\",\n    description: \"Daily financial summary agent\",\n  }),\n});\nconst { data } = await response.json();\n// data.activity — pass to the dashboard for passkey stamping (Round 2 input)\n// data.agentDraftId — pass to /agents/confirm-user in Round 2"
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/agents/confirm-user": {
@@ -2033,7 +2036,8 @@
             "label": "Node.js",
             "source": "// Resume an interrupted provisioning flow — regenerates the unsigned\n// CREATE_POLICIES activity for Round 3.\nconst response = await fetch(\n  `https://api.relayer.fi/v1/agents/${agentId}/prepare-policies`,\n  {\n    method: \"POST\",\n    headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n  },\n);\n// Pass the result to your dashboard for passkey stamping, then POST to\n// /v1/agents/confirm-policies with the stamped activity."
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/agents/{id}": {
@@ -2074,7 +2078,8 @@
             "label": "Node.js",
             "source": "// Only valid for agents in pending_policies state (abandoned provisioning).\n// To stop an active agent, use POST /agents/{id}/kill instead.\nconst response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}`, {\n  method: \"DELETE\",\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});"
           }
-        ]
+        ],
+        "description": ""
       },
       "get": {
         "operationId": "AgentController_getAgent",
@@ -2117,7 +2122,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}`, {\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});"
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/agents/approvals": {
@@ -2166,7 +2172,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(\"https://api.relayer.fi/v1/agents/approvals\", {\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\n// Pending approval requests from agents in the workspace — surface in a CFO\n// dashboard with /signing/approvals/{id}/approve-with-passkey."
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/agents/wallets": {
@@ -2286,7 +2293,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(\"https://api.relayer.fi/v1/agents/analytics/summary\", {\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\n// Aggregated spend + activity across every agent in the workspace."
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/agents/{id}/kill": {
@@ -2331,7 +2339,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/kill`, {\n  method: \"POST\",\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\n// Irreversible. Wallet stays funded — withdraw via fund/prepare-style flow\n// from your integrator wallet if needed."
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/agents/{id}/pause": {
@@ -2376,7 +2385,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/pause`, {\n  method: \"POST\",\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\n// Reversible. Use for routine maintenance.\n// The SDK polls /status every 30s and stops issuing payment ops on pause."
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/agents/{id}/resume": {
@@ -2421,7 +2431,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/resume`, {\n  method: \"POST\",\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});"
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/agents/{id}/rotate": {
@@ -2469,7 +2480,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/rotate`, {\n  method: \"POST\",\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\nconst { data } = await response.json();\n// data.agentSecret — NEW secret. Old one revoked instantly.\n// Push the new secret to the agent runtime ASAP."
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/agents/{id}/analytics": {
@@ -2619,7 +2631,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(\n  `https://api.relayer.fi/v1/agents/${agentId}/audit?limit=100`,\n  { headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` } },\n);\n// Full event log for the agent — every payment, kill, pause, policy change.\n// Cursor-based pagination via meta.nextCursor."
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/agents/{id}/tools": {
@@ -2661,7 +2674,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/tools`, {\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\n// Returns tools grouped by type (skill, builder, etc.). The allowlist that\n// bounds what the agent can call."
           }
-        ]
+        ],
+        "description": ""
       },
       "post": {
         "operationId": "AgentController_assignTool",
@@ -2719,7 +2733,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/tools`, {\n  method: \"POST\",\n  headers: {\n    Authorization: `ApiKey ${process.env.RELAYER_API_KEY}`,\n    \"Content-Type\": \"application/json\",\n  },\n  body: JSON.stringify({ toolType: \"skill\", toolId: \"skill_xyz789\" }),\n});\n// Allowlist: an agent can only call tools explicitly assigned to it.\n// Block via DELETE /agents/{id}/tools/{toolId}."
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/agents/{id}/tools/{toolId}": {
@@ -2770,7 +2785,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(\n  `https://api.relayer.fi/v1/agents/${agentId}/tools/${toolId}`,\n  {\n    method: \"DELETE\",\n    headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n  },\n);"
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/agents/{id}/status": {
@@ -2835,7 +2851,8 @@
             "label": "Node.js",
             "source": "// For most state transitions prefer the dedicated endpoints (/pause, /resume,\n// /kill) which carry semantic intent. PATCH /status is the generic mutation\n// when you need to set a state programmatically (migrations, batch ops).\nconst response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/status`, {\n  method: \"PATCH\",\n  headers: {\n    Authorization: `ApiKey ${process.env.RELAYER_API_KEY}`,\n    \"Content-Type\": \"application/json\",\n  },\n  body: JSON.stringify({ status: \"paused\" }),\n});"
           }
-        ]
+        ],
+        "description": ""
       },
       "get": {
         "description": "<!-- relayer:auth-badge:start -->\n> **Auth: agent HMAC or API key.** Accepts the agent's own HMAC credentials (runtime self-call) **or** the integrator's ApiKey (backend query on the agent's behalf).\n<!-- relayer:auth-badge:end -->\n\nReturns the agent's current lifecycle status and a `killSwitch` boolean (`true` iff status === 'killed'). Polled every 30s by `@relayerfi/agent-sdk` KillSwitch to gate payment operations. Accepts the agent's own HMAC headers or an integrator API key.",
@@ -2937,7 +2954,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/budget`, {\n  method: \"POST\",\n  headers: {\n    Authorization: `ApiKey ${process.env.RELAYER_API_KEY}`,\n    \"Content-Type\": \"application/json\",\n  },\n  body: JSON.stringify({\n    infrastructure: { monthlyUSD: 50 },\n    tokens:         { monthlyUSD: 200 },\n    payments:       {\n      monthlyUSDC: 1000,\n      perTxUSDC: 100,\n      approvalThresholdUSDC: 50,\n    },\n  }),\n});\n// Three independent layers. checkBudget() (telemetry) queries 1+2.\n// checkPaymentBudget() (payments) queries all 3 + kill switch."
           }
-        ]
+        ],
+        "description": ""
       },
       "get": {
         "operationId": "AgentController_getBudget",
@@ -3078,7 +3096,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/wallet`, {\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\nconst { data } = await response.json();\n// data.address (Solana base58)\n// data.explorerUrl (solscan link)"
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/agents/{id}/fund/prepare": {
@@ -3360,7 +3379,7 @@
         ]
       },
       "patch": {
-        "description": "Creates or updates the dual approval configuration. Admin only.",
+        "description": "<!-- relayer:security-warning:start -->\n> **⚠ Destructive — controls the human-in-the-loop gate.** Raising the approval threshold removes manual review for high-value transactions. A stolen API key can set the threshold to a very high number and then drain wallets up to that amount silently. Today no passkey-stamp requirement. Use the most restrictive API key scope (`internal` only) for this endpoint where possible.\n<!-- relayer:security-warning:end -->\n\nCreates or updates the dual approval configuration. Admin only.",
         "operationId": "ApprovalController_updateConfig",
         "parameters": [
           {
@@ -3690,7 +3709,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(\"https://api.relayer.fi/v1/action/skills\", {\n  method: \"POST\",\n  headers: {\n    Authorization: `ApiKey ${process.env.RELAYER_API_KEY}`,\n    \"Content-Type\": \"application/json\",\n  },\n  body: JSON.stringify({\n    name: \"Crypto Price Oracle\",\n    description: \"Returns current price for any ticker\",\n    endpoint: \"https://my-skill.example/api/run\",\n    priceUSDC: \"0.05\",\n    visibility: \"public\",\n    inputSchema: { type: \"object\", properties: { symbol: { type: \"string\" } } },\n  }),\n});\n// Once registered, agents can discover it via /action/skills/bazaar\n// and call it via x402fetch (the SDK handles payment automatically)."
           }
-        ]
+        ],
+        "description": ""
       },
       "get": {
         "operationId": "SkillController_listSkills",
@@ -3723,7 +3743,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(\"https://api.relayer.fi/v1/action/skills\", {\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\nconst { data } = await response.json();\n// Returns your private skills + all public skills (visible to any integrator)."
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/action/skills/bazaar": {
@@ -3755,7 +3776,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(\"https://api.relayer.fi/v1/action/skills/bazaar\", {\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\n// All public, healthy, paid skills — the marketplace agents discover from."
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/action/skills/{id}/test": {
@@ -3799,7 +3821,8 @@
             "label": "Node.js",
             "source": "// Owner-only manual invocation. Bypasses the x402 payment loop — useful\n// for verifying the skill responds correctly before exposing it to agents.\nconst response = await fetch(`https://api.relayer.fi/v1/action/skills/${skillId}/test`, {\n  method: \"POST\",\n  headers: {\n    Authorization: `ApiKey ${process.env.RELAYER_API_KEY}`,\n    \"Content-Type\": \"application/json\",\n  },\n  body: JSON.stringify({ input: { symbol: \"ETH\" } }),\n});"
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/action/skills/{id}/health": {
@@ -3843,7 +3866,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/action/skills/${skillId}/health`, {\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\n// Last health check result for the skill's endpoint. The platform pings\n// public skills every 5 minutes; unhealthy skills are hidden from the bazaar."
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/action/skills/{id}": {
@@ -3888,7 +3912,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/action/skills/${skillId}`, {\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});"
           }
-        ]
+        ],
+        "description": ""
       },
       "patch": {
         "operationId": "SkillController_updateSkill",
@@ -3947,7 +3972,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/action/skills/${skillId}`, {\n  method: \"PATCH\",\n  headers: {\n    Authorization: `ApiKey ${process.env.RELAYER_API_KEY}`,\n    \"Content-Type\": \"application/json\",\n  },\n  body: JSON.stringify({ priceUSDC: \"0.10\", description: \"Updated description\" }),\n});\n// Only the skill owner can update. Endpoint URL is also editable."
           }
-        ]
+        ],
+        "description": ""
       },
       "delete": {
         "operationId": "SkillController_deleteSkill",
@@ -3993,7 +4019,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/action/skills/${skillId}`, {\n  method: \"DELETE\",\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\n// Soft-delete. Active agents that have this skill in their tool allowlist\n// will stop being able to execute it on next call."
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/action/skills/{id}/execute": {
@@ -5087,7 +5114,8 @@
             "label": "Node.js",
             "source": "// Returns a serialized swap transaction ready to be signed. For the\n// passkey-gated flow, prefer /prepare + /confirm instead.\nconst response = await fetch(\"https://api.relayer.fi/v1/action/execute/swap\", {\n  method: \"POST\",\n  headers: {\n    Authorization: `ApiKey ${process.env.RELAYER_API_KEY}`,\n    \"Content-Type\": \"application/json\",\n  },\n  body: JSON.stringify({\n    tokenIn: \"0xA0b86a33...\",\n    tokenOut: \"0xC02aaA39...\",\n    amount: \"1000000\",\n    chain: \"base\",\n  }),\n});"
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/action/execute/swap/prepare": {
@@ -7570,7 +7598,8 @@
             "label": "Node.js",
             "source": "const response = await fetch(\n  `https://api.relayer.fi/v1/payout/accounts/${reference}/status`,\n  { headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` } },\n);"
           }
-        ]
+        ],
+        "description": ""
       }
     },
     "/orders/{id}": {
