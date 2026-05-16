@@ -218,7 +218,7 @@
             }
           },
           {
-            "group": "Cross-currency Payments",
+            "group": "Global Payout",
             "openapi": "api-reference/openapi.json",
             "pages": [
               "api-reference/flows/payout-setup",
@@ -233,7 +233,7 @@
             ]
           },
           {
-            "group": "Deposit Accounts",
+            "group": "On-ramp",
             "openapi": "api-reference/openapi.json",
             "pages": [
               "POST /payout/onramp/quote",
@@ -241,16 +241,6 @@
               "GET /payout/onramp/deposit-accounts",
               "GET /payout/onramp/deposit-accounts/{id}",
               "GET /payout/onramp/deposit-accounts/{id}/events"
-            ]
-          },
-          {
-            "group": "Withdraw Addresses",
-            "openapi": "api-reference/openapi.json",
-            "pages": [
-              "POST /payout/offramp/quote",
-              "POST /payout/offramp/withdraw-addresses",
-              "GET /payout/offramp/withdraw-addresses/{id}",
-              "GET /payout/offramp/withdraw-addresses/{id}/drains"
             ]
           }
         ]
