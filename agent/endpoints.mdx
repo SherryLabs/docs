@@ -37,16 +37,22 @@ For full request/response schemas see the [API Reference](/api-reference/introdu
 | `GET` | `/agents/{id}/audit` | Integrator | Paginated audit history |
 | `GET` | `/agents/approvals` | Integrator | Pending approval requests for this integrator |
 
-## Control
+## Control (backend-callable)
+
+| Method | Path | What it does |
+|---|---|---|
+| `POST` | `/agents/{id}/pause` | Reversible pause |
+| `POST` | `/agents/{id}/resume` | Resume a paused agent |
+
+## Control (passkey-stamped, dashboard-driven)
+
+These operations are destructive and require a passkey ceremony today — they run from the dashboard. The API endpoints exist but aren't documented in the API Reference until a passkey-stamp prepare/confirm pair ships.
 
 | Method | Path | What it does |
 |---|---|---|
 | `POST` | `/agents/{id}/budget` | Configure / reconfigure budget layers |
 | `POST` | `/agents/{id}/kill` | Irreversible emergency stop |
-| `POST` | `/agents/{id}/pause` | Reversible pause |
-| `POST` | `/agents/{id}/resume` | Resume a paused agent |
 | `POST` | `/agents/{id}/rotate` | Issue new HMAC secret, revoke old |
-| `PATCH` | `/agents/{id}/status` | Update agent status |
 
 ## Funding
 

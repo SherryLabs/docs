@@ -7,7 +7,9 @@ sidebarTitle: "Flow Guide"
 The Agent Kit lifecycle has four stages: **provision**, **fund**, **operate**, and **respond to approvals**. Every passkey-signed step uses prepare/confirm so private key material never leaves the secure enclave.
 
 <Note>
-  The **provision** and **fund** stages are passkey-stamped — today they run from the dashboard, which orchestrates the prepare/confirm rounds against the API endpoints shown below. The **operate** stage (runtime HMAC) is fully backend/SDK-driven.
+  **Dashboard-driven stages** (passkey-stamped today): provision, fund, configure budget, kill, rotate. The endpoints exist but require a passkey ceremony bound to RP `relayer.fi`, so the dashboard orchestrates them — third-party SDK path is planned (see [RFC #21](https://github.com/SherryLabs/relayer/pull/21) and [RFC #23](https://github.com/SherryLabs/relayer/pull/23)).
+
+  **Backend/SDK-driven stages**: operate (runtime HMAC), pause/resume, all reads.
 </Note>
 
 ## 1. Provision an agent (3-round passkey flow)
@@ -44,8 +46,10 @@ POST /v1/agents/{id}/fund/confirm   { stamped activity }
 
 ## 3. Configure budgets
 
+From the dashboard's agent settings (under the hood, a passkey-stamped `POST /v1/agents/{id}/budget`):
+
 ```text
-POST /v1/agents/{id}/budget {
+{
   infrastructure: { monthlyUSD: 50 },
   tokens:         { monthlyUSD: 200 },
   payments:       { monthlyUSDC: 1000, perTxUSDC: 100, approvalThresholdUSDC: 50 }
@@ -88,12 +92,20 @@ const sig = await sdk.http.request("POST", `/agents/${sdk.agentId}/sign-transact
 
 If a payment exceeds `approvalThresholdUSDC`, the API responds **HTTP 202** with `{ approvalId }`. The SDK suspends and polls `/v1/signing/approvals/{id}` every 5s until a CFO approves with passkey (or until the 5-minute deadline). A human approver in the dashboard sees the request in their queue (`GET /v1/signing/approvals?status=pending`) and stamps approval with `POST /v1/signing/approvals/{id}/approve-with-passkey`.
 
-## 6. Emergency stop
+## 6. Emergency stop + maintenance
+
+**Backend-callable (your own automation can hit these):**
+
+```text
+POST /v1/agents/{id}/pause     → reversible. Use for routine maintenance or anomaly response.
+POST /v1/agents/{id}/resume    → reversible. Resume from pause.
+```
+
+**Dashboard-driven (passkey-stamped):**
 
 ```text
 POST /v1/agents/{id}/kill      → irreversible. Wallet stays funded; further txs rejected.
-POST /v1/agents/{id}/pause     → reversible. Use for routine maintenance.
 POST /v1/agents/{id}/rotate    → issues a new secret. Old one revoked instantly.
 ```
 
-The SDK polls `/v1/agents/{id}/status` every 30s. On `killed` or API unreachable, payment ops block (fail-safe); telemetry continues (fail-open).
+The SDK polls `GET /v1/agents/{id}/status` every 30s. On `killed` or API unreachable, payment ops block (fail-safe); telemetry continues (fail-open).

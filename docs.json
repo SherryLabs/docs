@@ -152,8 +152,7 @@
                 "pages": [
                   "GET /agents",
                   "GET /agents/{id}",
-                  "DELETE /agents/{id}",
-                  "POST /agents/{id}/rotate"
+                  "DELETE /agents/{id}"
                 ]
               },
               {
@@ -172,11 +171,8 @@
               {
                 "group": "Control",
                 "pages": [
-                  "POST /agents/{id}/kill",
                   "POST /agents/{id}/pause",
-                  "POST /agents/{id}/resume",
-                  "POST /agents/{id}/budget",
-                  "PATCH /agents/{id}/status"
+                  "POST /agents/{id}/resume"
                 ]
               },
               {

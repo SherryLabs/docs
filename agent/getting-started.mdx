@@ -65,7 +65,7 @@ This is the full path from "I just heard about Relayer" to "my agent is running,
   </Step>
 
   <Step title="7. Configure the agent's budget">
-    Before the agent can spend, define the spend limits via `POST /v1/agents/{id}/budget`:
+    From the dashboard's agent settings, define the spend limits (the dashboard runs a passkey-stamped `POST /v1/agents/{id}/budget` under the hood):
 
     ```json
     {
