@@ -42,14 +42,14 @@ Pass the key in the `Authorization` header with the `ApiKey` scheme:
 <CodeGroup>
 
 ```bash cURL
-curl -X GET https://relayer-api.onrender.com/v1/signing/wallets \
+curl -X GET https://testnet.relayer.fi/v1/signing/wallets \
   -H "Authorization: ApiKey rk_client_key_v1_your_key_here" \
   -H "Content-Type: application/json"
 ```
 
 ```typescript Node.js
 const response = await fetch(
-  "https://relayer-api.onrender.com/v1/signing/wallets",
+  "https://testnet.relayer.fi/v1/signing/wallets",
   {
     method: "GET",
     headers: {
@@ -64,7 +64,7 @@ const response = await fetch(
 import os, requests
 
 response = requests.get(
-    "https://relayer-api.onrender.com/v1/signing/wallets",
+    "https://testnet.relayer.fi/v1/signing/wallets",
     headers={
         "Authorization": f"ApiKey {os.environ['RELAYER_API_KEY']}",
         "Content-Type": "application/json",
@@ -213,7 +213,7 @@ Relayer provides two environments:
 
 | Environment | Base URL | Purpose |
 |---|---|---|
-| **Sandbox** | `https://relayer-api.onrender.com/v1` | Testing and development |
+| **Sandbox** | `https://testnet.relayer.fi/v1` | Testing and development |
 | **Production** | `https://api.relayer.fi/v1` | Live operations |
 
 Both environments use the same auth scheme and endpoints. Workspace IDs, API keys, and agents are environment-scoped — a sandbox key won't authenticate against production.
