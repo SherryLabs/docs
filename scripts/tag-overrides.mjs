@@ -19,8 +19,6 @@ export const tagOverrides = {
 
   // Address-level operations under WalletsController are split into their
   // own Addresses group for nav clarity.
-  "POST /signing/wallets/accounts/prepare": ["Addresses"],
-  "POST /signing/wallets/accounts/confirm": ["Addresses"],
   "GET /signing/wallets/{walletId}/addresses": ["Addresses"],
   "GET /signing/wallets/{walletId}/addresses/{addressId}": ["Addresses"],
 
@@ -31,6 +29,21 @@ export const tagOverrides = {
   // proper fix is @ApiExcludeEndpoint() at the BE controller.
   "POST /signing/wallets": [],
   "POST /signing/wallets/{walletId}/addresses": [],
+
+  // Strict passkey policy — hidden until Option A (iframe stamper) ships.
+  // These endpoints are architecturally fine but the confirm step requires
+  // a browser-side passkey ceremony bound to RP relayer.fi. There's no
+  // SDK path for third-party integrators to invoke that ceremony today
+  // (the @relayerfi/widget-kit-react does NOT bridge to Turnkey), so
+  // documenting them in API Reference implies a capability we don't yet
+  // offer. The prepare endpoints are dropped together with their confirm
+  // pairs — useful only as a pair. The pairs live conceptually in the
+  // Signing Kit / Agent Kit tabs as "Passkey Mode" flows.
+  // See relayer/apps/api/.planning/RFC-third-party-passkey-signing.md.
+  "POST /signing/wallets/prepare": [],
+  "POST /signing/wallets/confirm": [],
+  "POST /signing/wallets/accounts/prepare": [],
+  "POST /signing/wallets/accounts/confirm": [],
 
   // The public swap quote is part of the swap-execute lifecycle (quote →
   // prepare → confirm), so it lives under "Widget Execute" in the nav.

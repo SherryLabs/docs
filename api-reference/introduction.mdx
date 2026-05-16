@@ -171,10 +171,16 @@ The Kits (Signing, Agent, Payout, Widget) are conceptual — they describe **wha
 | Capability | Where it lives | Why not here |
 |---|---|---|
 | Passkey registration, recovery, approvals | [Signing Kit](/signing/overview) | Browser-only WebAuthn ceremonies |
-| Wallet/address/transaction confirm with passkey | [Signing Kit](/signing/overview) | The confirm step takes a passkey-stamped activity |
-| Direct DEX swap execution (`/action/execute/swap/*`) | [Widget Kit](/widget/overview) | Confirm step requires passkey-stamped activity |
+| Wallet creation + address creation (prepare/confirm) | [Signing Kit](/signing/overview) | Confirm step requires a passkey ceremony bound to RP `relayer.fi` — no third-party SDK path yet ([discovery RFC](https://github.com/SherryLabs/relayer/pull/21)) |
+| Transaction signing (prepare/confirm) | [Signing Kit](/signing/overview) | Same reason — confirm needs passkey |
+| Direct DEX swap execution (`/action/execute/swap/*`) | [Widget Kit](/widget/overview) | Confirm step requires passkey |
+| Agent provisioning + funding (prepare/confirm) | [Agent Kit](/agent/overview) | Confirm steps require passkey |
 | Signing policy + approval-config mutations | Hidden pending RFC | Destructive endpoints currently callable from API key alone — see [security RFC](https://github.com/SherryLabs/relayer/pull/18) |
 | Lending / yield / earn | Not exposed via API | Widget Kit only at present |
+
+<Note>
+  All "passkey-required" flows above are *architecturally sound* — they use the modern passkey-stamped activity pattern. They're hidden from API Reference because **today there's no SDK path for a third-party integrator to invoke the passkey ceremony from their own origin**. The passkey is bound to RP `relayer.fi`; browsers only show it on `*.relayer.fi` pages (dashboard, recovery landing). When the iframe stamper ships ([discovery RFC #21](https://github.com/SherryLabs/relayer/pull/21)), these endpoints will re-appear here under a "Passkey Signing via Widget" framing.
+</Note>
 
 ## Try it from the playground
 

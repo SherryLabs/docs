@@ -267,9 +267,7 @@
           }
         ],
         "summary": "Prepare a wallet creation activity for passkey signing",
-        "tags": [
-          "Wallets"
-        ],
+        "tags": [],
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -346,9 +344,7 @@
           }
         ],
         "summary": "Confirm wallet creation with passkey signature",
-        "tags": [
-          "Wallets"
-        ],
+        "tags": [],
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -419,9 +415,7 @@
           }
         ],
         "summary": "Prepare a CREATE_WALLET_ACCOUNTS activity for passkey signing",
-        "tags": [
-          "Addresses"
-        ],
+        "tags": [],
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -498,9 +492,7 @@
           }
         ],
         "summary": "Confirm passkey-signed CREATE_WALLET_ACCOUNTS",
-        "tags": [
-          "Addresses"
-        ],
+        "tags": [],
         "x-codeSamples": [
           {
             "lang": "bash",

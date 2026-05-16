@@ -78,10 +78,6 @@
             "group": "Agent API",
             "openapi": "api-reference/openapi.json",
             "pages": [
-              "api-reference/flows/agent-provisioning",
-              "POST /agents/confirm-user",
-              "api-reference/flows/agent-finalize",
-              "POST /agents/{id}/prepare-policies",
               "DELETE /agents/{id}",
               "GET /agents",
               "GET /agents/{id}",
@@ -99,8 +95,6 @@
               "POST /agents/{id}/resume",
               "POST /agents/{id}/rotate",
               "PATCH /agents/{id}/status",
-              "POST /agents/{id}/fund/prepare",
-              "POST /agents/{id}/fund/confirm",
               "POST /agents/wallets",
               "POST /agents/{id}/sign-transaction",
               "api-reference/flows/agent-x402-pay",
@@ -163,8 +157,6 @@
             "group": "Transactions",
             "openapi": "api-reference/openapi.json",
             "pages": [
-              "api-reference/flows/transaction-signing",
-              "api-reference/flows/transaction-confirm",
               "GET /transactions/pending-signature",
               "GET /transactions/sign",
               "GET /transactions/sign/{transactionId}",
