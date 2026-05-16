@@ -1,0 +1,104 @@
+---
+title: "Sign a transaction — Prepare"
+description: "Step 1 of the self-custodial transaction signing flow. Returns an unsigned transaction for the user's passkey to sign."
+sidebarTitle: "Prepare transaction"
+api: "POST /v1/transactions/prepare"
+---
+
+This endpoint is **step 1 of the prepare → stamp → confirm signing flow**. It builds an unsigned transaction and stores it with status `awaiting_signature`. The unsigned bytes are returned for the user's passkey to sign — Relayer never sees a private key.
+
+<Steps>
+  <Step title="Step 1 — POST /v1/transactions/prepare (this endpoint)">
+    Returns `transactionId` and `unsignedTransaction` (hex). The transaction is persisted in `awaiting_signature` state and reserved for confirm.
+  </Step>
+  <Step title="Step 2 — User stamps with passkey (browser-side)">
+    Your frontend asks the user's passkey to sign the unsigned transaction via WebAuthn. The signed hex is returned to your backend.
+  </Step>
+  <Step title="Step 3 — POST /v1/transactions/confirm">
+    Submit the signed hex. The API hash-verifies the signature against the original unsigned payload, persists the signed transaction, and broadcasts to the blockchain. Returns `txHash`.
+  </Step>
+</Steps>
+
+<Note>
+  Confirm broadcasts by default. If you need to gate the broadcast separately (multi-step approval, scheduled submission), see `POST /v1/transactions/broadcast/{transactionId}` and `POST /v1/transactions/broadcast/raw`.
+</Note>
+
+## Request body
+
+<ParamField body="walletId" type="string" required>
+  The wallet whose key will sign. Must belong to the calling workspace.
+</ParamField>
+
+<ParamField body="from" type="string" required>
+  Source address (must be derived from `walletId`).
+</ParamField>
+
+<ParamField body="to" type="string" required>
+  Destination address. Validated against any signing policies on the wallet.
+</ParamField>
+
+<ParamField body="value" type="string" required>
+  Amount in the chain's smallest unit (wei for EVM, lamports for Solana). String to avoid JS number precision loss.
+</ParamField>
+
+<ParamField body="network" type="string" required>
+  Chain identifier: `mainnet`, `sepolia`, `polygon`, `arbitrum`, `base`, `solana`, `solana-devnet`.
+</ParamField>
+
+<ParamField body="data" type="string">
+  Optional calldata (hex) for contract interactions. Omit for native transfers.
+</ParamField>
+
+<ParamField body="gas" type="object">
+  Optional gas overrides. If omitted, the API estimates from chain state. Fields: `limit`, `maxFeePerGas`, `maxPriorityFeePerGas`.
+</ParamField>
+
+## Response
+
+<ResponseField name="transactionId" type="string">
+  Persistent ID. Use for confirm, broadcast, status polling, and cancellation.
+</ResponseField>
+
+<ResponseField name="unsignedTransaction" type="string">
+  Hex-encoded unsigned transaction. Pass to the browser for passkey signing.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Always `awaiting_signature` on creation.
+</ResponseField>
+
+<ResponseField name="hash" type="string">
+  The transaction hash that will result once signed. Useful for client-side preview.
+</ResponseField>
+
+<ResponseField name="expiresAt" type="string">
+  ISO 8601 timestamp. The reservation expires after 15 minutes; confirm before then or call prepare again.
+</ResponseField>
+
+## Approval gate
+
+If your workspace has approval enabled (`PATCH /v1/signing/approval-config`) and the transaction value exceeds the threshold, **confirm will return HTTP 202** with `{ approvalId }` instead of broadcasting. The transaction stays pending until an authorized approver stamps with their passkey at `POST /v1/signing/approvals/{id}/approve-with-passkey`.
+
+<Warning>
+  Once broadcast, the transaction is irreversible. Verify `to` and `value` on the client side before showing the passkey prompt. Cancel pending (pre-broadcast) transactions with `DELETE /v1/transactions/sign/{transactionId}`.
+</Warning>
+
+## Authentication
+
+`Authorization: ApiKey rk_client_key_v1_...` — workspace key with `signing` module enabled.
+
+## Common errors
+
+| Status | Cause | Fix |
+|---|---|---|
+| `400` | Invalid `from` (not derived from `walletId`), unsupported `network` | Use an address from `GET /v1/signing/wallets/{walletId}/addresses` |
+| `403` | Workspace lacks `signing` module | Activate the Signing Kit module in the dashboard |
+| `422` | Signing policy violation (destination not allowlisted, value over cap) | Inspect policy via `GET /v1/signing/policies`; either adjust policy or pick a different `to`/`value` |
+
+## Next steps
+
+After preparing, walk through the full flow:
+
+- `POST /v1/transactions/confirm` — submit the passkey-signed hex (broadcasts by default)
+- [Signing Kit Flow Guide](/signing/flow-guide) — narrative end-to-end with code samples
+- `POST /v1/transactions/broadcast/{transactionId}` — gate broadcast separately if needed

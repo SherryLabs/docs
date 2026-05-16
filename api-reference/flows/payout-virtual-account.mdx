@@ -1,0 +1,93 @@
+---
+title: "Set up a payout account — Step 2"
+description: "Step 2 of the 2-step payout setup. Creates a fiat virtual account (CLABE) tied to the withdrawal address."
+sidebarTitle: "Setup virtual account"
+api: "POST /v1/payout/accounts/setup/virtual-account"
+---
+
+This endpoint **closes the 2-step payout account setup**. After you created a withdrawal address in step 1, this creates a permanent fiat virtual account (e.g. a CLABE in Mexico) that lets your client deposit fiat to trigger an off-ramp settlement.
+
+<Steps>
+  <Step title="Step 1 — POST /v1/payout/accounts/setup/liquidation-address">
+    Created the crypto withdrawal address for `(beneficiaryId, beneficiaryAccountId, chain, currency)`.
+  </Step>
+  <Step title="Step 2 — POST /v1/payout/accounts/setup/virtual-account (this endpoint)">
+    Returns the fiat virtual account (CLABE for SPEI, account number + routing for ACH, IBAN for SEPA) backed by the withdrawal address.
+  </Step>
+  <Step title="Operate — quote then execute">
+    `POST /v1/payout/accounts/quote` to get the rate, then `POST /v1/payout/accounts/execute` to trigger settlement. Track via `GET /v1/orders/{orderId}`.
+  </Step>
+</Steps>
+
+## Prerequisites
+
+- The recipient exists (`POST /v1/payout/recipients`)
+- The recipient's bank account is registered (`POST /v1/payout/recipients/{id}/accounts`)
+- Step 1 (withdrawal address) succeeded for this `(beneficiaryId, beneficiaryAccountId)` pair
+
+If step 1 hasn't run for this pair, this endpoint returns `400`.
+
+## Request body
+
+<ParamField body="beneficiaryId" type="string" required>
+  The recipient (from `POST /v1/payout/recipients`).
+</ParamField>
+
+<ParamField body="beneficiaryAccountId" type="string" required>
+  The recipient's bank account ID. Must be the same pair you used in step 1.
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">
+  Internal virtual account ID. You don't need to store it — call setup again to retrieve.
+</ResponseField>
+
+<ResponseField name="clabe" type="string">
+  The 18-digit SPEI CLABE for Mexican fiat deposits. Share this with your client.
+</ResponseField>
+
+<ResponseField name="currency" type="string">
+  Fiat currency. Today: `MXN` (CLABE/SPEI). Other rails (ACH USD, SEPA EUR) will surface here as those go live.
+</ResponseField>
+
+<ResponseField name="beneficiaryId" type="string">
+  Echo of the recipient.
+</ResponseField>
+
+<Note>
+  This call is **idempotent** — calling it twice with the same `(beneficiaryId, beneficiaryAccountId)` returns the same CLABE. Don't cache; just call setup before each payment if you want to be sure the account is current.
+</Note>
+
+## What happens after a deposit
+
+When your client wires MXN to the returned CLABE:
+
+1. The fiat rails partner detects the deposit and credits the workspace's float
+2. An on-chain transfer of equivalent stablecoin is initiated from the withdrawal address
+3. The stablecoin lands at the on-chain off-ramp partner, triggering the bank wire to the recipient
+4. An order is created in `/v1/orders` with status transitioning: `awaiting_funds` → `funds_received` → `payment_submitted` → `completed`
+
+End-to-end settlement: typically 1–2 business days via SPEI.
+
+## Authentication
+
+`Authorization: ApiKey rk_client_key_v1_...` — workspace key with `payout` module enabled and write scope.
+
+## Common errors
+
+| Status | Cause | Fix |
+|---|---|---|
+| `400` | No withdrawal address exists for the `(beneficiaryId, beneficiaryAccountId)` pair | Run step 1 (`/setup/liquidation-address`) first |
+| `403` | Workspace lacks `payout` module or write scope | Activate Payout Kit in dashboard; check API key scope |
+| `404` | `beneficiaryId` or `beneficiaryAccountId` not found | Cross-tenant lookups return 404 (no existence leak) |
+| `422` | Recipient's bank account is not yet usable (pending rails partner approval) | Wait for the registration to confirm; retry |
+
+## Next steps
+
+After step 2 you're operational. Recommended next reads:
+
+- `POST /v1/payout/accounts/quote` — get the exchange rate and fees for a payment
+- `POST /v1/payout/accounts/execute` — trigger settlement
+- `GET /v1/orders/{orderId}` — track the full timeline
+- [Payout Kit Flow Guide](/payout/flow-guide) — narrative end-to-end

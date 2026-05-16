@@ -1,0 +1,81 @@
+---
+title: "Provision an agent — Round 1"
+description: "Round 1 of the 3-round passkey-stamped agent provisioning flow. Prepares an unsigned user-creation activity for the dashboard to stamp."
+sidebarTitle: "Prepare agent"
+api: "POST /v1/agents/prepare"
+---
+
+This endpoint kicks off the **agent provisioning flow** — a 3-round dance that materializes an autonomous agent with its own Solana wallet, an HMAC secret, and three layers of budget enforcement.
+
+You shouldn't call this in isolation. Each round produces an activity that your dashboard must stamp with a passkey, then submit to the next round.
+
+<Steps>
+  <Step title="Round 1 — POST /v1/agents/prepare (this endpoint)">
+    Returns an unsigned user-create activity. Your dashboard stamps it with a passkey via WebAuthn.
+  </Step>
+  <Step title="Round 2 — POST /v1/agents/confirm-user">
+    Submit the stamped Round 1 activity. The signing enclave processes it and returns an `agentId` plus an unsigned policies activity for Round 3.
+  </Step>
+  <Step title="Round 3 — POST /v1/agents/confirm-policies">
+    Submit the stamped Round 2 activity. The agent is finalized. The response includes the `agentSecret` — **shown once**. Persist it securely; the SDK reads it as `RELAYER_AGENT_SECRET`.
+  </Step>
+</Steps>
+
+<Warning>
+  If the flow is interrupted between Round 2 and Round 3, the agent is left in `pending_policies` state. Resume with `POST /v1/agents/{id}/prepare-policies`, or abandon with `DELETE /v1/agents/{id}`.
+</Warning>
+
+## Request body
+
+<ParamField body="name" type="string" required>
+  Human-readable name for the agent. Shown in the dashboard and audit logs.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Optional description. Useful for distinguishing agents in larger workspaces (e.g. "BI Reporter", "OTC Bot", "Outbound Sales").
+</ParamField>
+
+## Response
+
+<ResponseField name="agentDraftId" type="string">
+  An opaque identifier for the in-progress agent. Pass to `POST /v1/agents/confirm-user` in Round 2. Not the final `agentId` — that's issued in Round 2.
+</ResponseField>
+
+<ResponseField name="activity" type="object">
+  The unsigned activity payload. Your dashboard:
+  1. Reads the activity bytes
+  2. Asks the user to stamp it with their workspace passkey via `navigator.credentials.get()`
+  3. Sends the stamped result to `POST /v1/agents/confirm-user`
+
+  The `activity` object is opaque to your code — pass it through unchanged.
+</ResponseField>
+
+<Note>
+  The agent's wallet is created **before** the secret is revealed. By the time you have the `agentSecret` in hand (end of Round 3), the wallet already exists and is fundable via `POST /v1/agents/{id}/fund/prepare`.
+</Note>
+
+## Authentication
+
+`Authorization: ApiKey rk_client_key_v1_...` — your workspace's API key. The provisioning flow is integrator-side; the agent itself doesn't exist yet, so it has no HMAC credentials.
+
+## Common errors
+
+| Status | Cause | Fix |
+|---|---|---|
+| `400` | `name` missing or empty | Provide a non-empty `name` field |
+| `403` | API key lacks `integrator:write` scope | Use a write-scoped key (rotate via dashboard) |
+| `409` | Workspace at agent limit | Check your plan limits in the dashboard |
+
+## Next step
+
+After this round, your dashboard takes over to stamp the activity with a passkey, then submits the result to Round 2:
+
+```text
+POST /v1/agents/confirm-user
+{
+  "agentDraftId": "<from this response>",
+  "stampedActivity": "<passkey-stamped activity>"
+}
+```
+
+See the [Agent Kit Flow Guide](/agent/flow-guide) for the full provisioning narrative including funding and budget configuration.

@@ -20,6 +20,7 @@
               "get-started/overview",
               "get-started/authentication",
               "get-started/quickstart",
+              "get-started/ai-assistants",
               "get-started/changelog"
             ]
           },
@@ -27,21 +28,9 @@
             "group": "Reference",
             "pages": [
               "shared/architecture",
+              "shared/auth-model",
               "shared/glossary",
               "shared/error-reference"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "Exchange Kit",
-        "groups": [
-          {
-            "group": "Exchange Kit",
-            "pages": [
-              "exchange/overview",
-              "exchange/flow-guide",
-              "exchange/endpoints"
             ]
           }
         ]
@@ -73,14 +62,16 @@
         ]
       },
       {
-        "tab": "Action Kit",
+        "tab": "Agent Kit",
         "groups": [
           {
-            "group": "Action Kit (Widgets)",
+            "group": "Agent Kit",
             "pages": [
-              "action/overview",
-              "action/flow-guide",
-              "action/endpoints"
+              "agent/overview",
+              "agent/getting-started",
+              "agent/flow-guide",
+              "agent/sdk",
+              "agent/endpoints"
             ]
           }
         ]
@@ -109,14 +100,6 @@
             ]
           },
           {
-            "group": "Exchange",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Exchange"
-            }
-          },
-          {
             "group": "Wallets",
             "openapi": {
               "source": "api-reference/openapi.json",
@@ -125,20 +108,28 @@
             }
           },
           {
-            "group": "Transactions",
+            "group": "Addresses",
             "openapi": {
               "source": "api-reference/openapi.json",
               "directory": "api-reference",
-              "tag": "Transactions"
+              "tag": "Addresses"
             }
           },
           {
-            "group": "Signing Policies",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Signing Policies"
-            }
+            "group": "Transactions",
+            "openapi": "api-reference/openapi.json",
+            "pages": [
+              "api-reference/flows/transaction-signing",
+              "api-reference/flows/transaction-confirm",
+              "GET /transactions/pending-signature",
+              "GET /transactions/sign",
+              "GET /transactions/sign/{transactionId}",
+              "DELETE /transactions/sign/{transactionId}",
+              "POST /transactions/broadcast/{transactionId}",
+              "POST /transactions/broadcast/raw",
+              "GET /transactions/broadcast/{transactionId}",
+              "POST /transactions/broadcast/{transactionId}/retry"
+            ]
           },
           {
             "group": "Passkeys",
@@ -149,7 +140,15 @@
             }
           },
           {
-            "group": "Signing Approvals",
+            "group": "Recovery",
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference",
+              "tag": "Signing - Recovery"
+            }
+          },
+          {
+            "group": "Approvals",
             "openapi": {
               "source": "api-reference/openapi.json",
               "directory": "api-reference",
@@ -157,23 +156,166 @@
             }
           },
           {
-            "group": "Payout Rails",
+            "group": "Policies",
             "openapi": {
               "source": "api-reference/openapi.json",
               "directory": "api-reference",
-              "tag": "Payout: Rails"
+              "tag": "Signing Policies"
             }
           },
           {
-            "group": "Payout Accounts",
+            "group": "Agents",
+            "openapi": "api-reference/openapi.json",
+            "pages": [
+              {
+                "group": "Lifecycle",
+                "pages": [
+                  "api-reference/flows/agent-provisioning",
+                  "POST /agents/confirm-user",
+                  "api-reference/flows/agent-finalize",
+                  "POST /agents/{id}/prepare-policies",
+                  "DELETE /agents/{id}"
+                ]
+              },
+              {
+                "group": "Read",
+                "pages": [
+                  "GET /agents",
+                  "GET /agents/{id}",
+                  "GET /agents/{id}/wallet",
+                  "GET /agents/{id}/wallet-balance",
+                  "GET /agents/{id}/budget",
+                  "GET /agents/analytics/summary",
+                  "GET /agents/{id}/analytics",
+                  "GET /agents/{id}/audit",
+                  "GET /agents/approvals"
+                ]
+              },
+              {
+                "group": "Control",
+                "pages": [
+                  "POST /agents/{id}/budget",
+                  "POST /agents/{id}/kill",
+                  "POST /agents/{id}/pause",
+                  "POST /agents/{id}/resume",
+                  "POST /agents/{id}/rotate",
+                  "PATCH /agents/{id}/status"
+                ]
+              },
+              {
+                "group": "Funding",
+                "pages": [
+                  "POST /agents/{id}/fund/prepare",
+                  "POST /agents/{id}/fund/confirm"
+                ]
+              },
+              {
+                "group": "Runtime (HMAC)",
+                "pages": [
+                  "POST /agents/wallets",
+                  "POST /agents/{id}/sign-transaction",
+                  "api-reference/flows/agent-x402-pay",
+                  "POST /agents/events/batch"
+                ]
+              },
+              {
+                "group": "Tools",
+                "pages": [
+                  "GET /agents/{id}/tools",
+                  "POST /agents/{id}/tools",
+                  "DELETE /agents/{id}/tools/{toolId}"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Skills",
             "openapi": {
               "source": "api-reference/openapi.json",
               "directory": "api-reference",
-              "tag": "Payout: Accounts"
+              "tag": "Skills"
             }
           },
           {
-            "group": "Payout Recipients",
+            "group": "Widgets",
+            "pages": [
+              {
+                "group": "Builders",
+                "openapi": {
+                  "source": "api-reference/openapi.json",
+                  "directory": "api-reference",
+                  "tag": "Action: Builders"
+                }
+              },
+              {
+                "group": "Execute",
+                "openapi": {
+                  "source": "api-reference/openapi.json",
+                  "directory": "api-reference",
+                  "tag": "Action: Execute"
+                }
+              },
+              {
+                "group": "Quote",
+                "openapi": {
+                  "source": "api-reference/openapi.json",
+                  "directory": "api-reference",
+                  "tag": "Action: Quote (Public)"
+                }
+              },
+              {
+                "group": "Directory",
+                "openapi": {
+                  "source": "api-reference/openapi.json",
+                  "directory": "api-reference",
+                  "tag": "Action: Directory"
+                }
+              },
+              {
+                "group": "Tokens",
+                "openapi": {
+                  "source": "api-reference/openapi.json",
+                  "directory": "api-reference",
+                  "tag": "Action: Tokens"
+                }
+              }
+            ]
+          },
+          {
+            "group": "Payouts",
+            "pages": [
+              {
+                "group": "Accounts",
+                "openapi": "api-reference/openapi.json",
+                "pages": [
+                  "api-reference/flows/payout-setup",
+                  "api-reference/flows/payout-virtual-account",
+                  "POST /payout/accounts/quote",
+                  "POST /payout/accounts/execute",
+                  "GET /payout/accounts",
+                  "GET /payout/accounts/{reference}/status"
+                ]
+              },
+              {
+                "group": "On-ramp",
+                "openapi": {
+                  "source": "api-reference/openapi.json",
+                  "directory": "api-reference",
+                  "tag": "Payout: On-ramp"
+                }
+              },
+              {
+                "group": "Off-ramp",
+                "openapi": {
+                  "source": "api-reference/openapi.json",
+                  "directory": "api-reference",
+                  "tag": "Payout: Off-ramp"
+                }
+              }
+            ]
+          },
+          {
+            "group": "Recipients",
             "openapi": {
               "source": "api-reference/openapi.json",
               "directory": "api-reference",
@@ -181,99 +323,11 @@
             }
           },
           {
-            "group": "Widgets",
+            "group": "Orders",
             "openapi": {
               "source": "api-reference/openapi.json",
               "directory": "api-reference",
-              "tag": "Action"
-            }
-          },
-          {
-            "group": "Widget Builders",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Action: Builders"
-            }
-          },
-          {
-            "group": "Widget Directory",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Action: Directory"
-            }
-          },
-          {
-            "group": "Widget Tokens",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Action: Tokens"
-            }
-          },
-          {
-            "group": "Integrators",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Integrators"
-            }
-          },
-          {
-            "group": "Team",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Team"
-            }
-          },
-          {
-            "group": "Modules",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Modules"
-            }
-          },
-          {
-            "group": "API Keys",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "API Keys"
-            }
-          },
-          {
-            "group": "App",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "App"
-            }
-          },
-          {
-            "group": "Auth",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Auth"
-            }
-          },
-          {
-            "group": "Protocols: Swap",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Protocols: Swap"
-            }
-          },
-          {
-            "group": "Protocols: Lending",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Protocols: Lending"
+              "tag": "Payout: Orders"
             }
           }
         ]
@@ -327,6 +381,8 @@
   "redirects": [
     { "source": "/quickstart", "destination": "/get-started/quickstart" },
     { "source": "/development", "destination": "/get-started/overview" },
+    { "source": "/exchange/:slug*", "destination": "/get-started/overview" },
+    { "source": "/action/:slug*", "destination": "/widget/overview" },
     { "source": "/essentials/settings", "destination": "/get-started/overview" },
     { "source": "/essentials/navigation", "destination": "/get-started/overview" },
     { "source": "/essentials/markdown", "destination": "/get-started/overview" },

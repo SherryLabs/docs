@@ -1,0 +1,101 @@
+---
+title: "Set up a payout account — Step 1"
+description: "Step 1 of the 2-step payout account setup. Creates a crypto withdrawal address linked to a recipient's bank account."
+sidebarTitle: "Setup withdrawal address"
+api: "POST /v1/payout/accounts/setup/liquidation-address"
+---
+
+This endpoint is **step 1 of the 2-step payout account setup** for off-ramp settlement. It links a recipient's bank account to a crypto withdrawal address. When stablecoins land at this address, the off-ramp transfer to the recipient's bank is triggered automatically.
+
+<Steps>
+  <Step title="Step 1 — POST /v1/payout/accounts/setup/liquidation-address (this endpoint)">
+    Creates or returns the withdrawal address for `(beneficiaryId, beneficiaryAccountId, chain, currency)`. Idempotent — calling twice returns the same address.
+  </Step>
+  <Step title="Step 2 — POST /v1/payout/accounts/setup/virtual-account">
+    Creates a fiat virtual account (e.g. a SPEI CLABE in Mexico) tied to the withdrawal address. Returns the account number your client deposits fiat into. Also idempotent.
+  </Step>
+  <Step title="Operate — quote and execute">
+    Use `POST /v1/payout/accounts/quote` and `POST /v1/payout/accounts/execute` to move money. Track via `GET /v1/orders/{orderId}`.
+  </Step>
+</Steps>
+
+<Note>
+  Both setup endpoints are **idempotent**. You can call them on every order without worrying about duplicates. This is the recommended pattern: don't cache setup IDs in your backend, just call setup before each payment.
+</Note>
+
+## Prerequisites
+
+- Workspace KYB completed (one-time, via dashboard)
+- Recipient created (`POST /v1/payout/recipients`)
+- Recipient's bank account added (`POST /v1/payout/recipients/{id}/accounts` or via invite link)
+
+## Request body
+
+<ParamField body="beneficiaryId" type="string" required>
+  Recipient ID (from `POST /v1/payout/recipients`).
+</ParamField>
+
+<ParamField body="beneficiaryAccountId" type="string" required>
+  The recipient's bank account ID (from `POST /v1/payout/recipients/{id}/accounts`).
+</ParamField>
+
+<ParamField body="chain" type="string" required>
+  Stablecoin chain. Supported: `base`, `polygon`, `arbitrum`, `solana`. More on request.
+</ParamField>
+
+<ParamField body="currency" type="string" required>
+  Stablecoin symbol on the chosen chain. Supported: `usdc`, `usdt`.
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">
+  Internal withdrawal address ID. You generally don't need to store this — call setup again to retrieve.
+</ResponseField>
+
+<ResponseField name="address" type="string">
+  The crypto address. Send stablecoins here to trigger an off-ramp settlement to the recipient's bank.
+</ResponseField>
+
+<ResponseField name="chain" type="string">
+  Echo of the chain you requested.
+</ResponseField>
+
+<ResponseField name="currency" type="string">
+  Echo of the stablecoin you requested.
+</ResponseField>
+
+<Warning>
+  Each `(beneficiaryAccountId, chain, currency)` triple maps to **one withdrawal address forever**. Different recipients get different addresses. Don't reuse addresses across recipients.
+</Warning>
+
+## What happens after a deposit?
+
+When stablecoins arrive at the returned `address`, the off-ramp partner detects the deposit, settles the on-chain leg, and initiates the fiat transfer to the recipient's bank. Track the full lifecycle as an order:
+
+```
+GET /v1/orders                  — list all orders
+GET /v1/orders/{orderId}        — get a single order with timeline
+GET /v1/payout/recipients/{id}/orders  — orders for this recipient
+```
+
+Typical timeline: stablecoin deposit detected → confirmed on-chain → fiat transfer submitted → fiat received at recipient bank. End-to-end takes 1–2 business days via SPEI.
+
+## Authentication
+
+`Authorization: ApiKey rk_client_key_v1_...` — workspace key with `payout` module enabled and `payout:write` scope.
+
+## Common errors
+
+| Status | Cause | Fix |
+|---|---|---|
+| `400` | Unsupported `chain` + `currency` combination | See `/v1/action/tokens/{chain}/usdc` for supported pairs |
+| `403` | `payout` module not active for workspace | Activate Payout Kit in the dashboard |
+| `404` | `beneficiaryId` or `beneficiaryAccountId` not found, or belongs to another workspace | Cross-tenant lookups always return 404 (no existence leak) |
+| `422` | Recipient's bank account is not yet usable (pending registration) | Wait for the rails partner to confirm the bank account, then retry |
+
+## Next steps
+
+- `POST /v1/payout/accounts/setup/virtual-account` — Step 2: create the fiat virtual account
+- [Payout Kit Flow Guide](/payout/flow-guide) — full end-to-end narrative with code samples
+- `POST /v1/payout/accounts/quote` then `POST /v1/payout/accounts/execute` — operate once setup is complete

@@ -1,0 +1,135 @@
+---
+title: "Finalize an agent — Round 3"
+description: "Round 3 of the agent provisioning flow. Reveals the agent's HMAC secret — shown once."
+sidebarTitle: "Confirm policies"
+api: "POST /v1/agents/confirm-policies"
+---
+
+This is **Round 3 of 3** in agent provisioning. You submit the passkey-stamped policies activity; the signing enclave attaches the policies to the agent's identity, the agent becomes operational, and the response includes the **`agentSecret`** — the HMAC credential the SDK uses to call the API at runtime.
+
+<Warning>
+  The `agentSecret` is **shown once**. There is no retrieval endpoint. If you lose it, you must rotate via `POST /v1/agents/{id}/rotate` (which revokes the old secret instantly).
+</Warning>
+
+<Steps>
+  <Step title="Round 1 — POST /v1/agents/prepare">
+    Returned unsigned user-create activity. Dashboard stamped it.
+  </Step>
+  <Step title="Round 2 — POST /v1/agents/confirm-user">
+    Returned `agentId` + unsigned policies activity. Dashboard stamped that.
+  </Step>
+  <Step title="Round 3 — POST /v1/agents/confirm-policies (this endpoint)">
+    You're here. Submit the stamped policies activity. The agent activates and the secret is revealed.
+  </Step>
+</Steps>
+
+## Request body
+
+<ParamField body="agentId" type="string" required>
+  The agent UUID issued in Round 2.
+</ParamField>
+
+<ParamField body="stampedActivity" type="object" required>
+  The passkey-stamped CREATE_POLICIES activity from Round 2. Forwarded to the signing enclave to attach the policies to the agent.
+</ParamField>
+
+## Response
+
+<ResponseField name="agentId" type="string">
+  Echo of the agent ID. Persist this; it's the agent's permanent identifier.
+</ResponseField>
+
+<ResponseField name="agentSecret" type="string">
+  **Shown once.** The HMAC secret the SDK signs requests with. Push it directly to your secret store — never log it, never store it in code, never include it in commit history.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  `active` on success.
+</ResponseField>
+
+## Push the secret to the agent runtime
+
+The moment you have `agentSecret`, push it to where the agent will run. Common patterns:
+
+<Tabs>
+  <Tab title="Vercel">
+    ```bash
+    vercel env add RELAYER_AGENT_SECRET production
+    # paste the secret when prompted
+    ```
+  </Tab>
+  <Tab title="AWS Secrets Manager">
+    ```bash
+    aws secretsmanager create-secret \
+      --name "relayer/agent/${AGENT_ID}/secret" \
+      --secret-string "${AGENT_SECRET}"
+    ```
+  </Tab>
+  <Tab title="Doppler">
+    ```bash
+    doppler secrets set RELAYER_AGENT_SECRET="${AGENT_SECRET}" \
+      --project relayer-agents --config prod
+    ```
+  </Tab>
+  <Tab title="GitHub Actions">
+    ```bash
+    gh secret set RELAYER_AGENT_SECRET --body "${AGENT_SECRET}" \
+      --repo your-org/your-agent-repo
+    ```
+  </Tab>
+</Tabs>
+
+After that, your agent runtime initializes the SDK with:
+
+```typescript
+const sdk = new RelayerSDK({
+  agentId:  process.env.RELAYER_AGENT_ID!,
+  secret:   process.env.RELAYER_AGENT_SECRET!,
+  apiUrl:   process.env.RELAYER_API_URL!,
+});
+```
+
+## What the agent can do now
+
+By the time Round 3 succeeds:
+
+- The agent has a **Solana wallet** (provisioned in Round 1, address visible at `GET /v1/agents/{id}/wallet`)
+- The agent has an **HMAC secret** the SDK signs runtime calls with
+- The agent has **3-layer budget enforcement** ready to be configured
+- The agent has **no funds yet** — top up via `POST /v1/agents/{id}/fund/prepare` + `/fund/confirm`
+- The agent has **no budget configured yet** — until you call `POST /v1/agents/{id}/budget`, every payment check fails-closed (zero budget on all layers)
+
+Next steps in order:
+
+```text
+1. POST /v1/agents/{id}/budget          — define spend limits
+2. POST /v1/agents/{id}/fund/prepare    — start funding flow
+3. POST /v1/agents/{id}/fund/confirm    — settle funding
+4. Deploy your agent runtime with the SDK
+```
+
+## Authentication
+
+`Authorization: ApiKey rk_client_key_v1_...` — workspace key. The agent itself doesn't have credentials yet (the secret you're about to receive *is* its credential).
+
+## Common errors
+
+| Status | Cause | Fix |
+|---|---|---|
+| `400` | Stamped activity malformed or signature mismatch | The dashboard stamping step failed. Re-prepare with `/agents/{id}/prepare-policies` and stamp again |
+| `404` | `agentId` not found or in wrong state | Check with `GET /v1/agents/{id}`. Should be `pending_policies` |
+| `409` | Agent already finalized (already in `active` state) | Idempotency safeguard. The secret was issued earlier — you cannot retrieve it. Either rotate it or use the one you already saved |
+| `422` | Stamped activity expired (Turnkey activities have a TTL) | Re-prepare with `/agents/{id}/prepare-policies` |
+
+## If you abandon the flow
+
+If you started provisioning but didn't reach Round 3, the agent is in `pending_policies` state. Options:
+
+- **Resume** with `POST /v1/agents/{id}/prepare-policies` — regenerates the unsigned activity for Round 3
+- **Abandon** with `DELETE /v1/agents/{id}` — only valid while in `pending_policies`. Cleans up the partial wallet on Solana
+
+## Next steps
+
+- [Agent Kit Getting Started](/agent/getting-started) — full journey with SDK install and first paid call
+- [SDK Reference](/agent/sdk) — what the secret unlocks at runtime
+- `POST /v1/agents/{id}/budget` — configure spend limits

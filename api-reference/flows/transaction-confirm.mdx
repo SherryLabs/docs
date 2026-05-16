@@ -1,0 +1,139 @@
+---
+title: "Sign a transaction — Confirm"
+description: "Step 3 of the signing flow. Submits the passkey-signed hex; the API validates, persists, and broadcasts."
+sidebarTitle: "Confirm transaction"
+api: "POST /v1/transactions/confirm"
+---
+
+This endpoint **closes the prepare → stamp → confirm signing flow**. You submit the signed transaction hex; the API hash-verifies it against the original unsigned bytes, persists the signed transaction in your workspace, and broadcasts it to the blockchain.
+
+<Steps>
+  <Step title="Step 1 — POST /v1/transactions/prepare">
+    Returned `transactionId` and `unsignedTransaction`. The transaction was reserved in `awaiting_signature` state.
+  </Step>
+  <Step title="Step 2 — Browser stamps with passkey">
+    Your frontend signed the unsigned bytes via WebAuthn. The signed hex came back.
+  </Step>
+  <Step title="Step 3 — POST /v1/transactions/confirm (this endpoint)">
+    You're here. Submit the signed hex. The API validates, persists, broadcasts.
+  </Step>
+</Steps>
+
+## Request body
+
+<ParamField body="transactionId" type="string" required>
+  The ID returned by `POST /v1/transactions/prepare`. Must still be in `awaiting_signature` state.
+</ParamField>
+
+<ParamField body="signedTransaction" type="string" required>
+  The hex-encoded signed transaction. The signature is verified against the original unsigned transaction via hash comparison — if the bytes don't match, the API rejects.
+</ParamField>
+
+## What the API does
+
+1. **Looks up** the `transactionId` and confirms it belongs to the calling workspace.
+2. **Validates state**: rejects with `409` if the transaction is not `awaiting_signature`.
+3. **Hashes** the original unsigned transaction bytes (stored at prepare time).
+4. **Hashes** the unsigned portion of the submitted `signedTransaction` (strip the signature, hash the rest).
+5. **Compares** the two hashes. If they differ, rejects with `400` — the user signed a different transaction than what was prepared.
+6. **Persists** the signed transaction with status `signed`.
+7. **Broadcasts** to the appropriate chain RPC. On success, the response includes `txHash`.
+
+The hash comparison is the **only** signature validation. Relayer doesn't re-derive the user's address from the signature or verify against a specific public key — that's enforced earlier, when the wallet was created with the user's passkey and the signing policy.
+
+## Response
+
+<ResponseField name="transactionId" type="string">
+  Echo of the input.
+</ResponseField>
+
+<ResponseField name="txHash" type="string">
+  Chain transaction hash once the broadcast succeeds. Use this with the chain's explorer (or `GET /v1/transactions/broadcast/{transactionId}`) to follow confirmation.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  `broadcast` on success. Subsequent polling via `GET /v1/transactions/broadcast/{transactionId}` will return `confirmed` once enough block confirmations land, or `failed` if the chain rejected.
+</ResponseField>
+
+<ResponseField name="network" type="string">
+  Echo of the network from the prepare call.
+</ResponseField>
+
+## Approval gate — HTTP 202
+
+If your workspace has approval enabled (`PATCH /v1/signing/approval-config`) and the transaction value is at or above the threshold, this endpoint returns **HTTP 202 Accepted** instead of broadcasting:
+
+```json
+{
+  "success": true,
+  "statusCode": 202,
+  "data": {
+    "approvalId": "apr_xyz789",
+    "status": "pending_approval"
+  }
+}
+```
+
+The signed transaction is held server-side. A team member with approval permission must stamp the request:
+
+```text
+GET  /v1/signing/approvals          — appears in approver's queue
+POST /v1/signing/approvals/{id}/approve-with-passkey
+```
+
+Once approved, the transaction is broadcast **automatically** — no further action needed from the original caller. Poll `/v1/transactions/broadcast/{transactionId}` for the resulting `txHash`.
+
+<Warning>
+  Treat 202 as "pending", not as an error. The transaction is reserved and will broadcast on approval. The caller's responsibility is to poll until a final state.
+</Warning>
+
+## Authentication
+
+`Authorization: ApiKey rk_client_key_v1_...` — workspace key with `signing` module enabled and write scope.
+
+## Common errors
+
+| Status | Cause | Fix |
+|---|---|---|
+| `400` | Signed bytes don't match the prepared unsigned bytes (hash mismatch) | The user signed a different transaction. Re-prepare. |
+| `404` | `transactionId` not found or belongs to another workspace | Cross-tenant lookups return 404 (no existence leak) |
+| `409` | Transaction is not in `awaiting_signature` state (already confirmed, cancelled, or expired) | Check status with `GET /v1/transactions/sign/{transactionId}`; re-prepare if needed |
+| `422` | Signing policy violation discovered at confirm time | Inspect via `GET /v1/signing/policies`; adjust policy or transaction parameters |
+| `202` | Approval required (above threshold) | Poll `/v1/signing/approvals/{approvalId}` |
+
+## Common patterns
+
+### Wait for chain confirmation
+
+```typescript
+const confirm = await fetch(`${API}/transactions/confirm`, { /* ... */ });
+const { data } = await confirm.json();
+
+if (confirm.status === 202) {
+  // Approval gate — poll separately
+  await pollUntilApproved(data.approvalId);
+}
+
+// Poll broadcast status
+let result;
+do {
+  await sleep(2000);
+  result = await fetch(
+    `${API}/transactions/broadcast/${data.transactionId}`,
+  ).then((r) => r.json());
+} while (result.data.status === "broadcast");
+
+if (result.data.status === "failed") {
+  // Optionally retry: POST /transactions/broadcast/{transactionId}/retry
+}
+```
+
+### Gate broadcast separately
+
+If you want to delay or batch broadcasts (e.g. schedule for a settlement window), use the **separate broadcast endpoints** instead of confirm. Confirm always broadcasts immediately on success.
+
+## Next steps
+
+- `POST /v1/transactions/broadcast/{transactionId}/retry` — if the chain rejected for a transient reason (insufficient gas, mempool full)
+- `DELETE /v1/transactions/sign/{transactionId}` — cancel before broadcast (only valid if status is `awaiting_signature`)
+- [Signing Kit Flow Guide](/signing/flow-guide) — narrative end-to-end with all auth modes
