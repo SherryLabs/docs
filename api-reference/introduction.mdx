@@ -1,16 +1,10 @@
 ---
 title: "API Reference"
-description: "Backend-callable REST endpoints across the Relayer platform. Every call is documented with an interactive playground in 17 languages."
+description: "REST endpoints for backend integration. Interactive playground, 17 languages, sandbox + production."
 sidebarTitle: "Introduction"
 ---
 
-The Relayer API is a single REST surface organized into Kits — **Signing, Agent, Payout, Widget** — plus platform utilities. Every endpoint is documented on its own page in the sidebar, with an interactive playground that sends real requests against the sandbox or production environment.
-
-<Info>
-  **This reference documents only endpoints your backend can complete with the API key alone.** Flows that require a passkey ceremony in the browser (end-user wallet creation, transaction signing, direct swap execution, etc.) live in the [Signing Kit](/signing/overview), [Widget Kit](/widget/overview), or [Agent Kit](/agent/overview) — those Kits own the passkey UX end-to-end. See [Auth & Custody](/shared/auth-model) for the full split.
-</Info>
-
-Looking for the platform overview, two-layer narrative, or which Kit fits your use case? Start with the [Platform Overview](/get-started/overview).
+The Relayer API is a single REST surface. Every endpoint has its own page in the sidebar with an interactive playground that hits the live sandbox or production environment.
 
 ## Environments
 
@@ -138,7 +132,7 @@ The sidebar groups endpoints by **resource**, not by Kit. If you want to read a 
     Generate addresses derived from a wallet's root key.
   </Card>
   <Card title="Transactions" icon="arrow-right-arrow-left">
-    Prepare, broadcast, retry, cancel. (Confirm requires passkey — see Signing Kit.)
+    List pending, broadcast signed transactions, retry failures, cancel before broadcast.
   </Card>
   <Card title="Agents" icon="robot">
     Lifecycle, read, control, funding, runtime (HMAC), tools.
@@ -160,27 +154,7 @@ The sidebar groups endpoints by **resource**, not by Kit. If you want to read a 
   </Card>
 </CardGroup>
 
-The Kits (Signing, Agent, Payout, Widget) are conceptual — they describe **what part of the platform you're integrating**. The resource groups above describe **what your backend operates on directly**. See the [platform overview](/get-started/overview) for the Kit-level narrative.
-
-## What's not in this reference
-
-<Tip>
-  Endpoints that require a passkey ceremony in the browser are documented inside their owning Kit, not here. This isn't deprecation — the architecture is sound. It's policy: this reference is the "what can my backend call?" surface.
-</Tip>
-
-| Capability | Where it lives | Why not here |
-|---|---|---|
-| Passkey registration, recovery, approvals | [Signing Kit](/signing/overview) | Browser-only WebAuthn ceremonies |
-| Wallet creation + address creation (prepare/confirm) | [Signing Kit](/signing/overview) | Confirm step requires a passkey ceremony bound to RP `relayer.fi` — no third-party SDK path yet ([discovery RFC](https://github.com/SherryLabs/relayer/pull/21)) |
-| Transaction signing (prepare/confirm) | [Signing Kit](/signing/overview) | Same reason — confirm needs passkey |
-| Direct DEX swap execution (`/action/execute/swap/*`) | [Widget Kit](/widget/overview) | Confirm step requires passkey |
-| Agent provisioning + funding (prepare/confirm) | [Agent Kit](/agent/overview) | Confirm steps require passkey |
-| Signing policy + approval-config mutations | Hidden pending RFC | Destructive endpoints currently callable from API key alone — see [security RFC](https://github.com/SherryLabs/relayer/pull/18) |
-| Lending / yield / earn | Not exposed via API | Widget Kit only at present |
-
-<Note>
-  All "passkey-required" flows above are *architecturally sound* — they use the modern passkey-stamped activity pattern. They're hidden from API Reference because **today there's no SDK path for a third-party integrator to invoke the passkey ceremony from their own origin**. The passkey is bound to RP `relayer.fi`; browsers only show it on `*.relayer.fi` pages (dashboard, recovery landing). When the iframe stamper ships ([discovery RFC #21](https://github.com/SherryLabs/relayer/pull/21)), these endpoints will re-appear here under a "Passkey Signing via Widget" framing.
-</Note>
+For end-user flows that require a passkey ceremony (wallet creation, transaction signing, agent provisioning), see the [Signing Kit](/signing/overview), [Agent Kit](/agent/overview), and [Widget Kit](/widget/overview) — those Kits cover the full UX.
 
 ## Try it from the playground
 
