@@ -148,29 +148,10 @@
             "openapi": "api-reference/openapi.json",
             "pages": [
               {
-                "group": "Lifecycle",
+                "group": "Operator (api-key)",
                 "pages": [
                   "GET /agents",
                   "GET /agents/{id}",
-                  "DELETE /agents/{id}"
-                ]
-              },
-              {
-                "group": "Reads",
-                "pages": [
-                  "GET /agents/{id}/status",
-                  "GET /agents/{id}/wallet",
-                  "GET /agents/{id}/wallet-balance",
-                  "GET /agents/{id}/budget",
-                  "GET /agents/{id}/analytics",
-                  "GET /agents/{id}/audit",
-                  "GET /agents/analytics/summary",
-                  "GET /agents/approvals"
-                ]
-              },
-              {
-                "group": "Control",
-                "pages": [
                   "POST /agents/{id}/pause",
                   "POST /agents/{id}/resume"
                 ]
@@ -178,10 +159,11 @@
               {
                 "group": "Runtime (HMAC)",
                 "pages": [
-                  "api-reference/flows/agent-x402-pay",
-                  "POST /agents/wallets",
+                  "GET /agents/{id}/status",
+                  "GET /agents/{id}/budget",
                   "POST /agents/{id}/sign-transaction",
-                  "POST /agents/events/batch"
+                  "POST /agents/events/batch",
+                  "api-reference/flows/agent-x402-pay"
                 ]
               }
             ]
