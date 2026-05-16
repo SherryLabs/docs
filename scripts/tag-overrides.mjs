@@ -22,8 +22,15 @@ export const tagOverrides = {
   "POST /signing/wallets/accounts/prepare": ["Addresses"],
   "POST /signing/wallets/accounts/confirm": ["Addresses"],
   "GET /signing/wallets/{walletId}/addresses": ["Addresses"],
-  "POST /signing/wallets/{walletId}/addresses": ["Addresses"],
   "GET /signing/wallets/{walletId}/addresses/{addressId}": ["Addresses"],
+
+  // Zombie endpoints — service methods throw BadRequestException pointing
+  // users to the modern prepare/confirm flow. Both are JSDoc-@deprecated
+  // and only kept to surface a clear 400 to legacy callers (none exist on
+  // the live DB per Phase 33). Hide from nav by stripping their tag;
+  // proper fix is @ApiExcludeEndpoint() at the BE controller.
+  "POST /signing/wallets": [],
+  "POST /signing/wallets/{walletId}/addresses": [],
 
   // The public swap quote is part of the swap-execute lifecycle (quote →
   // prepare → confirm), so it lives under "Widget Execute" in the nav.

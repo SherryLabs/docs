@@ -633,9 +633,7 @@
           }
         ],
         "summary": "Create a new wallet",
-        "tags": [
-          "Wallets"
-        ],
+        "tags": [],
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -991,7 +989,7 @@
         ]
       },
       "post": {
-        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: API key + passkey stamp.** Your backend calls this with `ApiKey`, but the body includes a passkey-stamped activity produced by WebAuthn in the user's browser. **Cannot be completed by backend alone.** See [Auth & Custody](/shared/auth-model).\n<!-- relayer:auth-badge:end -->\n\nCreates new addresses in an existing wallet. You can specify accounts with full parameters or use addressFormats for simplified creation.",
+        "description": "Creates new addresses in an existing wallet. You can specify accounts with full parameters or use addressFormats for simplified creation.",
         "operationId": "WalletsController_createWalletAddresses",
         "parameters": [
           {
@@ -1093,9 +1091,7 @@
           }
         ],
         "summary": "Create wallet addresses (generate addresses)",
-        "tags": [
-          "Addresses"
-        ],
+        "tags": [],
         "x-codeSamples": [
           {
             "lang": "bash",

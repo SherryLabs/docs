@@ -27,7 +27,9 @@ export const authModes = {
   "POST /signing/wallets/confirm": "api-key+passkey",
   "POST /signing/wallets/accounts/prepare": "api-key",
   "POST /signing/wallets/accounts/confirm": "api-key+passkey",
-  "POST /signing/wallets/{walletId}/addresses": "api-key+passkey",
+  // POST /signing/wallets/{walletId}/addresses — DEAD: service throws 400.
+  // Hidden via empty-tag override in tag-overrides.mjs. No auth-mode here
+  // because no caller should hit it.
 
   // Wallet reads — pure ApiKey
   // (default = api-key, listed here for clarity in next round if needed)
