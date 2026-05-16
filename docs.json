@@ -20,12 +20,13 @@
               "get-started/overview",
               "get-started/authentication",
               "get-started/quickstart",
+              "get-started/sdks",
               "get-started/ai-assistants",
               "get-started/changelog"
             ]
           },
           {
-            "group": "Reference",
+            "group": "Foundations",
             "pages": [
               "shared/architecture",
               "shared/auth-model",

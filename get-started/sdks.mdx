@@ -1,0 +1,91 @@
+---
+title: "SDKs"
+description: "Published TypeScript/React packages for the Relayer platform — what each one does and when to use it."
+sidebarTitle: "SDKs"
+---
+
+Relayer ships six public packages on npm. Pick the ones that match what you're building.
+
+## At a glance
+
+| Package | Use it when | Detail |
+|---|---|---|
+| [`@relayerfi/widget-kit-react`](#widget-kit-react) | You're building a React app and want the prebuilt swap / transfer / bridge UI | React component library |
+| [`@relayerfi/widget-kit-native`](#widget-kit-native) | Same, but for React Native | Native components |
+| [`@relayerfi/widget-kit-core`](#widget-kit-core) | You're building a custom widget for a framework that isn't React | Framework-agnostic core logic |
+| [`@relayerfi/action-kit`](#action-kit) | You're generating widget action metadata server-side or want to validate metadata schemas | Metadata builder + validator |
+| [`@relayerfi/agent-sdk`](#agent-sdk) | You're running an AI agent that needs budget enforcement and x402 payments | Agent runtime SDK |
+| [`@relayerfi/skills-client`](#skills-client) | You want to discover and execute x402-priced skills from an agent (Mastra-compatible) | Skills client |
+
+---
+
+## Widget Kit (React) {#widget-kit-react}
+
+The prebuilt React widget for end-user swap, transfer, and bridge flows. Renders the UI, manages wagmi connectivity, and orchestrates signing in both Metadata Mode (user's own wallet) and Passkey Signing Mode.
+
+```bash
+npm install @relayerfi/widget-kit-react wagmi viem @tanstack/react-query framer-motion
+```
+
+See [Widget Kit → Installation](/widget/installation) and [Widget Kit → Integration](/widget/integration) for setup.
+
+## Widget Kit (Native) {#widget-kit-native}
+
+The same UI patterns as Widget Kit (React) but for React Native — drop into your mobile app.
+
+```bash
+npm install @relayerfi/widget-kit-native
+```
+
+## Widget Kit (Core) {#widget-kit-core}
+
+Framework-agnostic core logic shared by `widget-kit-react` and `widget-kit-native`. Use directly if you're building a custom widget for Vue, Svelte, or any other framework that isn't covered.
+
+```bash
+npm install @relayerfi/widget-kit-core
+```
+
+## Action Kit {#action-kit}
+
+TypeScript library for building and validating widget action metadata. Defines the action schema, validates payloads before submission, and provides template helpers for common parameter types (token amounts, chain selectors, recipient addresses).
+
+```bash
+npm install @relayerfi/action-kit viem
+```
+
+See [Widget Kit → SDK reference](/widget/sdk) for the full API.
+
+## Agent SDK {#agent-sdk}
+
+The runtime SDK for AI agents you operate via Relayer. Handles three-layer budget enforcement (infra / tokens / payments), x402 payment execution, kill-switch polling, and event reporting. Mastra-compatible.
+
+```bash
+npm install @relayerfi/agent-sdk
+```
+
+See [Agent Kit → Getting Started](/agent/getting-started) and [Agent Kit → SDK reference](/agent/sdk).
+
+## Skills Client {#skills-client}
+
+Mastra-flavored tools for discovering and executing x402-priced skills from an agent. Skills are user-defined HTTP endpoints any agent can pay-and-call.
+
+```bash
+npm install @relayerfi/skills-client
+```
+
+See the Skills API in the sidebar for the underlying HTTP surface.
+
+---
+
+## Source code
+
+All packages are open source under the SherryLabs GitHub organization:
+
+<CardGroup cols={2}>
+  <Card title="Widget Kit packages" icon="github" href="https://github.com/SherryLabs/relayer-widgets">
+    Mono-repo for `@relayerfi/widget-kit-react`, `widget-kit-core`, `widget-kit-native`, and `action-kit`.
+  </Card>
+  <Card title="Agent + Skills packages" icon="github" href="https://github.com/SherryLabs/relayer">
+    Source for `@relayerfi/agent-sdk` and `@relayerfi/skills-client` lives in `packages/` of the Relayer monorepo.
+  </Card>
+</CardGroup>
