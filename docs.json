@@ -132,90 +132,33 @@
             ]
           },
           {
-            "group": "Passkeys",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Signing - Passkeys"
-            }
-          },
-          {
-            "group": "Recovery",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Signing - Recovery"
-            }
-          },
-          {
-            "group": "Approvals",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Signing Approvals"
-            }
-          },
-          {
-            "group": "Policies",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Signing Policies"
-            }
-          },
-          {
-            "group": "Agents",
+            "group": "Signing",
             "openapi": "api-reference/openapi.json",
             "pages": [
-              "api-reference/flows/agent-provisioning",
-              "POST /agents/confirm-user",
-              "api-reference/flows/agent-finalize",
-              "POST /agents/{id}/prepare-policies",
-              "DELETE /agents/{id}",
-              "GET /agents",
-              "GET /agents/{id}",
-              "GET /agents/{id}/wallet",
-              "GET /agents/{id}/wallet-balance",
-              "GET /agents/{id}/budget",
-              "GET /agents/analytics/summary",
-              "GET /agents/{id}/analytics",
-              "GET /agents/{id}/audit",
-              "GET /agents/approvals",
-              "POST /agents/{id}/budget",
-              "POST /agents/{id}/kill",
-              "POST /agents/{id}/pause",
-              "POST /agents/{id}/resume",
-              "POST /agents/{id}/rotate",
-              "PATCH /agents/{id}/status",
-              "POST /agents/{id}/fund/prepare",
-              "POST /agents/{id}/fund/confirm",
-              "POST /agents/wallets",
-              "POST /agents/{id}/sign-transaction",
-              "api-reference/flows/agent-x402-pay",
-              "POST /agents/events/batch",
-              "GET /agents/{id}/tools",
-              "POST /agents/{id}/tools",
-              "DELETE /agents/{id}/tools/{toolId}"
+              "POST /signing/passkeys/challenge",
+              "POST /signing/passkeys/register",
+              "POST /signing/passkeys/add",
+              "GET /signing/passkeys",
+              "PATCH /signing/passkeys/{id}",
+              "DELETE /signing/passkeys/{id}",
+              "POST /signing/recovery/initiate",
+              "POST /signing/recovery/sync",
+              "GET /signing/recovery/context",
+              "GET /signing/recovery/migration-eligibility",
+              "GET /signing/approvals",
+              "POST /signing/approvals/{id}/approve",
+              "POST /signing/approvals/{id}/approve-with-passkey",
+              "POST /signing/approvals/{id}/reject",
+              "GET /signing/approval-config",
+              "PATCH /signing/approval-config",
+              "GET /signing/policies",
+              "POST /signing/policies",
+              "PATCH /signing/policies/{id}",
+              "DELETE /signing/policies/{id}"
             ]
           },
           {
-            "group": "Skills",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Skills"
-            }
-          },
-          {
-            "group": "Widget Builders",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Action: Builders"
-            }
-          },
-          {
-            "group": "Widget Execute",
+            "group": "Swap",
             "openapi": {
               "source": "api-reference/openapi.json",
               "directory": "api-reference",
@@ -223,51 +166,7 @@
             }
           },
           {
-            "group": "Widget Directory",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Action: Directory"
-            }
-          },
-          {
-            "group": "Widget Tokens",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Action: Tokens"
-            }
-          },
-          {
-            "group": "Payout Accounts",
-            "openapi": "api-reference/openapi.json",
-            "pages": [
-              "api-reference/flows/payout-setup",
-              "api-reference/flows/payout-virtual-account",
-              "POST /payout/accounts/quote",
-              "POST /payout/accounts/execute",
-              "GET /payout/accounts",
-              "GET /payout/accounts/{reference}/status"
-            ]
-          },
-          {
-            "group": "On-ramp",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Payout: On-ramp"
-            }
-          },
-          {
-            "group": "Off-ramp",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Payout: Off-ramp"
-            }
-          },
-          {
-            "group": "Recipients",
+            "group": "Beneficiaries",
             "openapi": {
               "source": "api-reference/openapi.json",
               "directory": "api-reference",
@@ -275,12 +174,34 @@
             }
           },
           {
-            "group": "Orders",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Payout: Orders"
-            }
+            "group": "Virtual Accounts",
+            "openapi": "api-reference/openapi.json",
+            "pages": [
+              "POST /payout/onramp/quote",
+              "POST /payout/onramp/deposit-accounts",
+              "GET /payout/onramp/deposit-accounts",
+              "GET /payout/onramp/deposit-accounts/{id}",
+              "GET /payout/onramp/deposit-accounts/{id}/events"
+            ]
+          },
+          {
+            "group": "Withdraw Fiat",
+            "openapi": "api-reference/openapi.json",
+            "pages": [
+              "POST /payout/offramp/quote",
+              "POST /payout/offramp/withdraw-addresses",
+              "GET /payout/offramp/withdraw-addresses/{id}",
+              "GET /payout/offramp/withdraw-addresses/{id}/drains",
+              "api-reference/flows/payout-setup",
+              "api-reference/flows/payout-virtual-account",
+              "POST /payout/accounts/quote",
+              "POST /payout/accounts/execute",
+              "GET /payout/accounts",
+              "GET /payout/accounts/{reference}/status",
+              "GET /orders",
+              "GET /orders/{id}",
+              "POST /orders/{id}/cancel"
+            ]
           }
         ]
       }
