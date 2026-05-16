@@ -4,6 +4,8 @@ description: "Execute an end-to-end fiat payout — from recipient onboarding to
 sidebarTitle: "Flow Guide"
 ---
 
+import EnvSetup from '/snippets/env-setup.mdx';
+
 This guide walks through a complete off-ramp payout: onboarding a recipient, setting up their virtual account, getting a quote, and executing a payment that settles to their bank.
 
 ## Prerequisites
@@ -12,14 +14,7 @@ This guide walks through a complete off-ramp payout: onboarding a recipient, set
 - Your workspace activated with the Payout module enabled
 - KYB completed for your workspace (handled through the Relayer dashboard — one-time setup)
 
-<CodeGroup>
-
-```bash Environment
-export RELAYER_API_KEY="rk_client_key_v1_your_key_here"
-export RELAYER_BASE_URL="https://testnet.relayer.fi/v1"  # sandbox; use https://api.relayer.fi/v1 for production
-```
-
-</CodeGroup>
+<EnvSetup />
 
 <Note>
   Business onboarding (KYB) is completed through the dashboard before you can use the Payout API. Once approved, every endpoint below becomes available.
