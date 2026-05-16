@@ -2328,7 +2328,7 @@
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/kill`, {\n  method: \"POST\",\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\n// Irreversible. Wallet stays funded — withdraw via fund/prepare-style flow\n// from your integrator wallet if needed."
           }
         ],
-        "description": ""
+        "description": "<!-- relayer:security-warning:start -->\n> **⚠ Destructive — irreversible.** Killing an agent permanently halts it; recovery requires reprovisioning (3-round passkey flow from the dashboard). A stolen API key can kill every agent in your workspace and cause significant operational downtime. No passkey-stamp requirement today.\n<!-- relayer:security-warning:end -->"
       }
     },
     "/agents/{id}/pause": {
@@ -2469,7 +2469,7 @@
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/rotate`, {\n  method: \"POST\",\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\nconst { data } = await response.json();\n// data.agentSecret — NEW secret. Old one revoked instantly.\n// Push the new secret to the agent runtime ASAP."
           }
         ],
-        "description": ""
+        "description": "<!-- relayer:security-warning:start -->\n> **⚠ Destructive — running agent stops signing.** Rotating issues a new HMAC secret and invalidates the old one. Any agent process still using the old secret loses its ability to sign API calls until you deploy the new secret. A stolen API key can rotate every agent and cause DoS until a redeploy cycle.\n<!-- relayer:security-warning:end -->"
       }
     },
     "/agents/{id}/analytics": {
@@ -2834,7 +2834,7 @@
             "source": "// For most state transitions prefer the dedicated endpoints (/pause, /resume,\n// /kill) which carry semantic intent. PATCH /status is the generic mutation\n// when you need to set a state programmatically (migrations, batch ops).\nconst response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/status`, {\n  method: \"PATCH\",\n  headers: {\n    Authorization: `ApiKey ${process.env.RELAYER_API_KEY}`,\n    \"Content-Type\": \"application/json\",\n  },\n  body: JSON.stringify({ status: \"paused\" }),\n});"
           }
         ],
-        "description": ""
+        "description": "<!-- relayer:security-warning:start -->\n> **⚠ Destructive — overlaps kill/pause/resume.** This is the generic status mutator; it can transition an agent to `killed`, `paused`, or other states. Same blast radius as the explicit kill/pause/resume endpoints. No passkey-stamp requirement today.\n<!-- relayer:security-warning:end -->"
       },
       "get": {
         "description": "<!-- relayer:auth-badge:start -->\n> **Auth: agent HMAC or API key.** Accepts the agent's own HMAC credentials (runtime self-call) **or** the integrator's ApiKey (backend query on the agent's behalf).\n<!-- relayer:auth-badge:end -->\n\nReturns the agent's current lifecycle status and a `killSwitch` boolean (`true` iff status === 'killed'). Polled every 30s by `@relayerfi/agent-sdk` KillSwitch to gate payment operations. Accepts the agent's own HMAC headers or an integrator API key.",
@@ -2937,7 +2937,7 @@
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/budget`, {\n  method: \"POST\",\n  headers: {\n    Authorization: `ApiKey ${process.env.RELAYER_API_KEY}`,\n    \"Content-Type\": \"application/json\",\n  },\n  body: JSON.stringify({\n    infrastructure: { monthlyUSD: 50 },\n    tokens:         { monthlyUSD: 200 },\n    payments:       {\n      monthlyUSDC: 1000,\n      perTxUSDC: 100,\n      approvalThresholdUSDC: 50,\n    },\n  }),\n});\n// Three independent layers. checkBudget() (telemetry) queries 1+2.\n// checkPaymentBudget() (payments) queries all 3 + kill switch."
           }
         ],
-        "description": ""
+        "description": "<!-- relayer:security-warning:start -->\n> **⚠ Destructive — direct money exfil risk.** This endpoint sets the agent's spending cap (`payments.monthlyUSDC`, `perTxUSDC`, `approvalThresholdUSDC`). A stolen API key can raise the cap to an arbitrary number and the next agent payment will drain the agent wallet — same architectural gap as Signing policy mutations. No passkey-stamp requirement today. Gate this call behind your own multi-admin workflow until the API requires passkey-stamping. See [Auth & Custody](/shared/auth-model).\n<!-- relayer:security-warning:end -->"
       },
       "get": {
         "operationId": "AgentController_getBudget",
