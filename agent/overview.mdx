@@ -17,7 +17,6 @@ The Agent Kit lets you ship AI agents that can hold a wallet, spend USDC, and si
 - **3-layer budget guard** — infrastructure spend, token usage, and on-chain payments — enforced independently
 - **Kill switch** — global stop that fails-safe (blocks payments, lets infra/tokens fail-open)
 - **x402-pay** — pay HTTP 402 protected endpoints with USDC, with approval flow for amounts above threshold
-- **Skills marketplace** — register and execute skills callable from any agent via x402
 - **Event batching** — `llm_call`, `api_call`, `payment` telemetry batched and flushed every 10s
 
 ## Authentication
@@ -31,9 +30,8 @@ Two modes coexist on `/v1/agents/*`:
 
 The HMAC header is built inside `HttpClient.buildAuthHeaders(method, path, body)` — agents never pass the plain `agentId:secret` outside that boundary.
 
-## SDK packages
+## SDK
 
-- **`@relayerfi/agent-sdk`** — `RelayerSDK` facade, `HttpClient`, `BudgetGuard`, `KillSwitch`, `EventBatcher`, `X402Handler`, `ApprovalHandler`, `x402fetch`, and LLM wrappers for Anthropic / OpenAI / Google
-- **`@relayerfi/skills-client`** — Mastra tools (`listSkillsTool`, `executeSkillTool`) for skill discovery and execution
+The agent runtime is `@relayerfi/agent-sdk` — `RelayerSDK` facade, `HttpClient`, `BudgetGuard`, `KillSwitch`, `EventBatcher`, `X402Handler`, `ApprovalHandler`, `x402fetch`, and LLM wrappers for Anthropic / OpenAI / Google.
 
 See [Flow Guide](/agent/flow-guide) for the create-agent → fund → spend lifecycle, and [Endpoints](/agent/endpoints) for the API surface.

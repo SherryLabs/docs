@@ -1,6 +1,6 @@
 ---
 title: "SDK Reference"
-description: "Exhaustive reference for @relayerfi/agent-sdk and @relayerfi/skills-client — classes, methods, events, errors"
+description: "Exhaustive reference for @relayerfi/agent-sdk — classes, methods, events, errors"
 sidebarTitle: "SDK Reference"
 ---
 
@@ -10,12 +10,11 @@ sidebarTitle: "SDK Reference"
   New to the Agent Kit? Start with [Getting Started](/agent/getting-started) for the full journey from workspace signup to running agent.
 </Info>
 
-## Packages
+## Package
 
 | Package | Version | Purpose |
 |---|---|---|
-| `@relayerfi/agent-sdk` | `1.0.0` | Core SDK. RelayerSDK facade + HMAC, budget, kill switch, x402, approvals, LLM wrappers, Mastra hook |
-| `@relayerfi/skills-client` | `0.1.0` | Mastra tools for skill discovery and execution |
+| `@relayerfi/agent-sdk` | `1.0.0` | RelayerSDK facade + HMAC, budget, kill switch, x402, approvals, LLM wrappers, Mastra hook |
 
 Install:
 
@@ -23,15 +22,12 @@ Install:
 
 ```bash pnpm
 pnpm add @relayerfi/agent-sdk
-# Optional, for skills:
-pnpm add @relayerfi/skills-client
 # Optional, for Mastra integration:
 pnpm add @mastra/core
 ```
 
 ```bash npm
 npm install @relayerfi/agent-sdk
-npm install @relayerfi/skills-client
 npm install @mastra/core
 ```
 
@@ -59,9 +55,6 @@ import {
 
 // Mastra integration (optional peer dep on @mastra/core)
 import { relayerMastraHook } from "@relayerfi/agent-sdk/mastra";
-
-// Skills (separate package)
-import { listSkillsTool, executeSkillTool } from "@relayerfi/skills-client/mastra";
 ```
 
 ---
@@ -284,7 +277,7 @@ A `fetch`-compatible wrapper that ties together: budget check, HMAC auth, x402 d
 ```typescript
 import { x402fetch } from "@relayerfi/agent-sdk";
 
-const response = await x402fetch(sdk, "https://skill.example.com/api/run", {
+const response = await x402fetch(sdk, "https://paid-api.example.com/v1/run", {
   method: "POST",
   body: JSON.stringify({ input: "..." }),
 });
@@ -303,7 +296,6 @@ const data = await response.json();
 ### When to use
 
 - Calling any third-party API that's x402-gated
-- Calling a skill from the marketplace
 - Any operation where you want budget + approval + payment in one call
 
 If you only need HMAC auth without payment handling, use `sdk.http.post(...)` directly.
@@ -373,33 +365,6 @@ await agent.generate("Generate a financial summary", {
 Returns `{ onStepFinish: (step) => void }`. Reads `step.usage` (Mastra's standardized usage object) and emits `llm_call` events with provider and model parsed from `step.modelId` (format: `"provider/model"`, e.g. `"anthropic/claude-opus-4-5"`).
 
 Tracking errors are swallowed — broken telemetry never breaks the agent.
-
----
-
-## Skills Client
-
-`@relayerfi/skills-client` exposes Mastra-compatible tools for skill discovery and execution. The agent picks skills autonomously based on tool descriptions.
-
-```typescript
-import { listSkillsTool, executeSkillTool } from "@relayerfi/skills-client/mastra";
-import { Agent } from "@mastra/core/agent";
-import { sdk } from "./sdk";
-
-const agent = new Agent({
-  name: "BI Reporter",
-  instructions: "Generate daily financial reports using the available skills.",
-  model: { /* ... */ },
-  tools: {
-    listSkills: listSkillsTool(sdk),
-    executeSkill: executeSkillTool(sdk),
-  },
-});
-```
-
-- **`listSkillsTool(sdk)`** — wraps `GET /v1/action/skills`. Returns the array of skills available to this agent (own private + all public).
-- **`executeSkillTool(sdk)`** — wraps `POST /v1/action/skills/{id}/execute` via `x402fetch`. Handles payment automatically.
-
-Each tool factory takes the SDK instance and captures it via closure — no module-level singletons. Safe to instantiate one tool per agent.
 
 ---
 

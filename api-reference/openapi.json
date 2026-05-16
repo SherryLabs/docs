@@ -2648,9 +2648,7 @@
           }
         ],
         "summary": "Get tools assigned to an agent, grouped by type",
-        "tags": [
-          "Agents"
-        ],
+        "tags": [],
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -2707,9 +2705,7 @@
           }
         ],
         "summary": "Assign a tool to an agent",
-        "tags": [
-          "Agents"
-        ],
+        "tags": [],
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -2759,9 +2755,7 @@
           }
         ],
         "summary": "Revoke a tool from an agent",
-        "tags": [
-          "Agents"
-        ],
+        "tags": [],
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -3683,9 +3677,7 @@
           }
         ],
         "summary": "Register a new skill",
-        "tags": [
-          "Skills"
-        ],
+        "tags": [],
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -3717,9 +3709,7 @@
           }
         ],
         "summary": "List skills (own private + all public)",
-        "tags": [
-          "Skills"
-        ],
+        "tags": [],
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -3750,9 +3740,7 @@
           }
         ],
         "summary": "x402 Bazaar — skill marketplace (coming soon)",
-        "tags": [
-          "Skills"
-        ],
+        "tags": [],
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -3795,9 +3783,7 @@
           }
         ],
         "summary": "Manually test a skill endpoint",
-        "tags": [
-          "Skills"
-        ],
+        "tags": [],
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -3840,9 +3826,7 @@
           }
         ],
         "summary": "Get skill health status",
-        "tags": [
-          "Skills"
-        ],
+        "tags": [],
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -3886,9 +3870,7 @@
           }
         ],
         "summary": "Get a skill by ID",
-        "tags": [
-          "Skills"
-        ],
+        "tags": [],
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -3946,9 +3928,7 @@
           }
         ],
         "summary": "Update a skill (owner only)",
-        "tags": [
-          "Skills"
-        ],
+        "tags": [],
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -3993,9 +3973,7 @@
           }
         ],
         "summary": "Delete a skill (owner only)",
-        "tags": [
-          "Skills"
-        ],
+        "tags": [],
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -4053,9 +4031,7 @@
           }
         ],
         "summary": "Execute a skill (agent SDK or API key)",
-        "tags": [
-          "Skills"
-        ],
+        "tags": [],
         "description": "<!-- relayer:auth-badge:start -->\n> **Auth: agent HMAC or API key.** Accepts the agent's own HMAC credentials (runtime self-call) **or** the integrator's ApiKey (backend query on the agent's behalf).\n<!-- relayer:auth-badge:end -->",
         "x-codeSamples": [
           {
@@ -7985,9 +7961,6 @@
     {
       "name": "Signing Policies",
       "description": "Signing policy management"
-    },
-    {
-      "name": "Skills"
     },
     {
       "name": "Transactions",

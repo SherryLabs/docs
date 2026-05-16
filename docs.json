@@ -74,44 +74,6 @@
               "agent/sdk",
               "agent/endpoints"
             ]
-          },
-          {
-            "group": "Agent API",
-            "openapi": "api-reference/openapi.json",
-            "pages": [
-              "DELETE /agents/{id}",
-              "GET /agents",
-              "GET /agents/{id}",
-              "GET /agents/{id}/status",
-              "GET /agents/{id}/wallet",
-              "GET /agents/{id}/wallet-balance",
-              "GET /agents/{id}/budget",
-              "GET /agents/analytics/summary",
-              "GET /agents/{id}/analytics",
-              "GET /agents/{id}/audit",
-              "GET /agents/approvals",
-              "POST /agents/{id}/budget",
-              "POST /agents/{id}/kill",
-              "POST /agents/{id}/pause",
-              "POST /agents/{id}/resume",
-              "POST /agents/{id}/rotate",
-              "PATCH /agents/{id}/status",
-              "POST /agents/wallets",
-              "POST /agents/{id}/sign-transaction",
-              "api-reference/flows/agent-x402-pay",
-              "POST /agents/events/batch",
-              "GET /agents/{id}/tools",
-              "POST /agents/{id}/tools",
-              "DELETE /agents/{id}/tools/{toolId}"
-            ]
-          },
-          {
-            "group": "Skills API",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference",
-              "tag": "Skills"
-            }
           }
         ]
       },
@@ -179,6 +141,53 @@
               "POST /action/builders/crosschain-bridge",
               "GET /action/directory",
               "GET /action/tokens/{chain}/{protocol}"
+            ]
+          },
+          {
+            "group": "Agents",
+            "openapi": "api-reference/openapi.json",
+            "pages": [
+              {
+                "group": "Lifecycle",
+                "pages": [
+                  "GET /agents",
+                  "GET /agents/{id}",
+                  "DELETE /agents/{id}",
+                  "POST /agents/{id}/rotate"
+                ]
+              },
+              {
+                "group": "Reads",
+                "pages": [
+                  "GET /agents/{id}/status",
+                  "GET /agents/{id}/wallet",
+                  "GET /agents/{id}/wallet-balance",
+                  "GET /agents/{id}/budget",
+                  "GET /agents/{id}/analytics",
+                  "GET /agents/{id}/audit",
+                  "GET /agents/analytics/summary",
+                  "GET /agents/approvals"
+                ]
+              },
+              {
+                "group": "Control",
+                "pages": [
+                  "POST /agents/{id}/kill",
+                  "POST /agents/{id}/pause",
+                  "POST /agents/{id}/resume",
+                  "POST /agents/{id}/budget",
+                  "PATCH /agents/{id}/status"
+                ]
+              },
+              {
+                "group": "Runtime (HMAC)",
+                "pages": [
+                  "api-reference/flows/agent-x402-pay",
+                  "POST /agents/wallets",
+                  "POST /agents/{id}/sign-transaction",
+                  "POST /agents/events/batch"
+                ]
+              }
             ]
           },
           {

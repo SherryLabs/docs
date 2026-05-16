@@ -14,7 +14,7 @@ The platform consolidates around four Kits — Signing, Agent, Payout, Widget �
 
 ### Added
 
-- **Agent Kit (`/v1/agents/*`, `/v1/action/skills/*`)** — Budget-enforced AI agents with USDC wallets on Solana, x402 payments, and the skills marketplace. SDK: `@relayerfi/agent-sdk`.
+- **Agent Kit (`/v1/agents/*`)** — Budget-enforced AI agents with USDC wallets on Solana and x402 payments. SDK: `@relayerfi/agent-sdk`.
 - **Payout: On-ramp** (`/v1/payout/onramp/*`) and **Off-ramp** (`/v1/payout/offramp/*`) — directional fiat ↔ stablecoin flows, formerly bundled in Accounts.
 - **Payout: Orders** (`/v1/orders`) — unified order tracking across all rails (list, get, cancel).
 - **Signing - Passkeys** and **Signing - Recovery** — explicit endpoints for WebAuthn registration and email-based recovery.
@@ -99,7 +99,7 @@ Initial Kit-based architecture. The Relayer API is organized into purpose-built 
 
 - **Signing Kit** (`/v1/signing/*`, `/v1/transactions/*`) — Self-custodial wallets, transaction prepare/confirm, passkey-based signing
 - **Payout Kit** (`/v1/payout/*`, `/v1/orders`) — Fiat on/off-ramp rails, recipient management, settlement tracking
-- **Agent Kit** (`/v1/agents/*`, `/v1/action/skills/*`) — Budget-enforced AI agents with USDC wallets and x402 payments
+- **Agent Kit** (`/v1/agents/*`) — Budget-enforced AI agents with USDC wallets and x402 payments
 - **Widget Kit** — Embeddable React components for canonical protocols (swap, transfer, crosschain)
 - Consistent API response envelope: `{ success, message, data, statusCode, timestamp, path }`
 - API key authentication via `Authorization: ApiKey <key>` header

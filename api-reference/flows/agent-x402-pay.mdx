@@ -25,17 +25,17 @@ This is the **payment primitive** of the Agent Kit. The agent presents a payment
 ```mermaid
 sequenceDiagram
   participant Agent as Agent Runtime
-  participant Skill as Remote Resource
+  participant Remote as Remote Remote
   participant API as Relayer API
 
-  Agent->>Skill: Original request (no payment)
-  Skill-->>Agent: 402 + paymentRequirement
+  Agent->>Remote: Original request (no payment)
+  Remote-->>Agent: 402 + paymentRequirement
   Agent->>API: POST /agents/{id}/x402-pay { paymentRequirement }
   Note over API: Check budgets + kill switch
   Note over API: Execute USDC transfer
   API-->>Agent: { paymentHeader, transactionId }
-  Agent->>Skill: Original request + X-Payment header
-  Skill-->>Agent: 200 + content
+  Agent->>Remote: Original request + X-Payment header
+  Remote-->>Agent: 200 + content
 ```
 
 The whole loop is one `await x402fetch(sdk, url, init)` call in the SDK. This page covers what happens server-side during the middle step.
@@ -70,7 +70,7 @@ The `paymentRequirement` object:
 </ParamField>
 
 <ParamField body="paymentRequirement.recipient" type="string" required>
-  The address that should receive the USDC. The API validates this matches the 402 response's intent and the skill's registered receiver (when paying a Relayer skill).
+  The address that should receive the USDC. The API validates this matches the 402 response's intent.
 </ParamField>
 
 <ParamField body="paymentRequirement.description" type="string">
@@ -145,7 +145,7 @@ If you're calling this endpoint directly, you must implement the same loop. Appr
 
 ## Working with `paymentRequirement`
 
-The exact format of `paymentRequirement` depends on the 402-responding service. For Relayer-registered skills, the format is enforced and your agent can pass the body through unchanged. For third-party x402 services, the SDK normalizes common variants:
+The exact format of `paymentRequirement` depends on the 402-responding service. The SDK normalizes common variants:
 
 - HTTP 402 with `WWW-Authenticate: x402` header
 - HTTP 402 with `paymentRequirement` JSON body
@@ -153,9 +153,9 @@ The exact format of `paymentRequirement` depends on the 402-responding service. 
 
 If you're calling this endpoint without the SDK, parse the 402 response yourself and pass the requirement here as-is.
 
-## Examples — paying for a Relayer skill
+## Recommended pattern
 
-The most common case: your agent uses a paid skill from the marketplace. The agent's tools include `executeSkill`, the agent picks it, the SDK handles 402 → pay → retry. No code in your agent reasoning needs to touch this endpoint directly.
+Use the SDK's `x402fetch` wrapper. It handles 402 detection, this endpoint call, header injection, and retry transparently — your agent code calls a normal `fetch` and never deals with payment plumbing directly. See [SDK Reference — `x402fetch`](/agent/sdk#x402fetch).
 
 ## Next steps
 

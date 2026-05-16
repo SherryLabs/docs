@@ -45,6 +45,26 @@ export const tagOverrides = {
   "POST /signing/wallets/accounts/prepare": [],
   "POST /signing/wallets/accounts/confirm": [],
 
+  // Agent Tools (3 endpoints) and Skills (9 endpoints) — same concept:
+  // capabilities an agent can execute (Tools consume APIs, Skills are
+  // instructions). The x402-priced marketplace where third parties
+  // publish/consume them is out of scope today. The endpoints exist in
+  // the spec because Relayer's internal dashboard manages skills built
+  // for its own agents. When the marketplace ships these come back
+  // together with proper marketplace framing.
+  "GET /agents/{id}/tools": [],
+  "POST /agents/{id}/tools": [],
+  "DELETE /agents/{id}/tools/{toolId}": [],
+  "GET /action/skills": [],
+  "POST /action/skills": [],
+  "GET /action/skills/bazaar": [],
+  "GET /action/skills/{id}": [],
+  "PATCH /action/skills/{id}": [],
+  "DELETE /action/skills/{id}": [],
+  "POST /action/skills/{id}/execute": [],
+  "POST /action/skills/{id}/test": [],
+  "GET /action/skills/{id}/health": [],
+
   // The public swap quote is part of the swap-execute lifecycle (quote →
   // prepare → confirm), so it lives under "Widget Execute" in the nav.
   // Keeping the separate "Action: Quote (Public)" tag would create a

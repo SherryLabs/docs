@@ -21,7 +21,7 @@ This is the full path from "I just heard about Relayer" to "my agent is running,
 
   <Step title="3. Activate the Agent Kit module">
     In Dashboard → **Modules**, toggle **Agent Kit** on. This:
-    - Enables the `/v1/agents/*` and `/v1/action/skills/*` endpoints for your workspace
+    - Enables the `/v1/agents/*` endpoints for your workspace
     - Provisions an internal queue for budget enforcement
     - Activates the `agent` permission scope on your API keys
 
@@ -119,12 +119,6 @@ This is the full path from "I just heard about Relayer" to "my agent is running,
     - **ESM only** — no CJS shim
     - **TypeScript ≥ 5.0** if you want type definitions
 
-    Optional add-on for skills:
-
-    ```bash
-    pnpm add @relayerfi/skills-client
-    ```
-
     Mastra integration (if you build agents with Mastra):
 
     ```bash
@@ -171,13 +165,13 @@ This is the full path from "I just heard about Relayer" to "my agent is running,
   </Step>
 
   <Step title="12. Make your agent spend money">
-    The simplest paid action is paying for an x402-gated skill:
+    The simplest paid action is calling any x402-protected HTTP endpoint:
 
     ```typescript
     import { sdk } from "./sdk";
     import { x402fetch } from "@relayerfi/agent-sdk";
 
-    const response = await x402fetch(sdk, "https://skill.example.com/api/run", {
+    const response = await x402fetch(sdk, "https://paid-api.example.com/v1/run", {
       method: "POST",
       body: JSON.stringify({ input: "What's the current ETH price?" }),
     });
@@ -222,9 +216,6 @@ By the end of step 12, you have:
   </Card>
   <Card title="Agent Kit Flow Guide" icon="route" href="/agent/flow-guide">
     The same flow as above but focused on the API endpoints — useful when you're not using the dashboard.
-  </Card>
-  <Card title="Skills marketplace" icon="cube" href="/api-reference/introduction">
-    Discover and execute paid skills. Agents pay via x402, the SDK handles it transparently.
   </Card>
   <Card title="Examples" icon="code" href="https://github.com/relayerfi">
     Reference implementations: BI Agent (daily reports), OTC Agent (operator workflow), Outbound Agent (B2B sales).

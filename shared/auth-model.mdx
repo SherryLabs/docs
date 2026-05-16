@@ -76,7 +76,7 @@ Agent SDK runtime. HMAC-SHA256 signature derived from the agent secret issued at
 | Pay x402-gated resources within budget | Spend above the agent's `approvalThresholdUSDC` without a human stamp |
 | Emit telemetry events | Change the agent's own policies or budget |
 | Create wallets if policies allow (`Allow: Agent — Create Wallets`) | Provision a new agent or rotate another agent's secret |
-| Call any agent-allowlisted skill | Touch resources outside the agent's own scope |
+| Call x402-paid resources within the agent's allowlist | Touch resources outside the agent's own scope |
 
 The agent's authority is **whatever the human granted at provisioning time, bounded by policies + budgets**. The HMAC secret doesn't grant cryptographic authority — it proves identity. The actual authorization comes from the policies signed by a human passkey when the agent was created.
 

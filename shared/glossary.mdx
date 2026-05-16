@@ -9,7 +9,7 @@ Reference for domain terms used throughout the Relayer documentation.
 ## A
 
 **Agent Kit**
-The Relayer Kit that lets you ship budget-enforced AI agents — each agent holds a USDC wallet, can sign Solana transactions, and pays for x402-gated resources. Enforces a 3-layer budget guard plus a kill switch. Accessed via `/v1/agents/*` and `/v1/action/skills/*`.
+The Relayer Kit that lets you ship budget-enforced AI agents — each agent holds a USDC wallet, can sign Solana transactions, and pays for x402-gated resources. Enforces a 3-layer budget guard plus a kill switch. Accessed via `/v1/agents/*`.
 
 **API Key**
 A secret credential that identifies an integrator workspace and authorizes requests to the Relayer API. Format: `rk_client_key_v1_...`. Passed in the `Authorization: ApiKey <key>` header.
@@ -73,4 +73,4 @@ A set of React components and adapters that embed Relayer's canonical protocol w
 ## X
 
 **x402**
-HTTP status code 402 "Payment Required" — used by skills and remote services to request a USDC payment before returning data. The Agent Kit ships an `x402fetch` helper that handles 402 detection, payment, and retry transparently.
+HTTP status code 402 "Payment Required" — used by remote services to request a USDC payment before returning data. The Agent Kit ships an `x402fetch` helper that handles 402 detection, payment, and retry transparently.

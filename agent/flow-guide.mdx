@@ -73,7 +73,7 @@ const sdk = new RelayerSDK({
 });
 
 // Pay an x402-gated endpoint
-const data = await sdk.x402fetch("https://skill.example/api/run", {
+const data = await sdk.x402fetch("https://paid-api.example.com/v1/run", {
   method: "POST",
   body: JSON.stringify({ input }),
 });

@@ -4,7 +4,7 @@ description: "Published TypeScript/React packages for the Relayer platform — w
 sidebarTitle: "SDKs"
 ---
 
-Relayer ships six public packages on npm. Pick the ones that match what you're building.
+Relayer ships five public packages on npm. Pick the ones that match what you're building.
 
 ## At a glance
 
@@ -15,7 +15,6 @@ Relayer ships six public packages on npm. Pick the ones that match what you're b
 | [`@relayerfi/widget-kit-core`](#widget-kit-core) | You're building a custom widget for a framework that isn't React | Framework-agnostic core logic |
 | [`@relayerfi/action-kit`](#action-kit) | You're generating widget action metadata server-side or want to validate metadata schemas | Metadata builder + validator |
 | [`@relayerfi/agent-sdk`](#agent-sdk) | You're running an AI agent that needs budget enforcement and x402 payments | Agent runtime SDK |
-| [`@relayerfi/skills-client`](#skills-client) | You want to discover and execute x402-priced skills from an agent (Mastra-compatible) | Skills client |
 
 ---
 
@@ -65,16 +64,6 @@ npm install @relayerfi/agent-sdk
 
 See [Agent Kit → Getting Started](/agent/getting-started) and [Agent Kit → SDK reference](/agent/sdk).
 
-## Skills Client {#skills-client}
-
-Mastra-flavored tools for discovering and executing x402-priced skills from an agent. Skills are user-defined HTTP endpoints any agent can pay-and-call.
-
-```bash
-npm install @relayerfi/skills-client
-```
-
-See the Skills API in the sidebar for the underlying HTTP surface.
-
 ---
 
 ## Source code
@@ -85,7 +74,7 @@ All packages are open source under the SherryLabs GitHub organization:
   <Card title="Widget Kit packages" icon="github" href="https://github.com/SherryLabs/relayer-widgets">
     Mono-repo for `@relayerfi/widget-kit-react`, `widget-kit-core`, `widget-kit-native`, and `action-kit`.
   </Card>
-  <Card title="Agent + Skills packages" icon="github" href="https://github.com/SherryLabs/relayer">
-    Source for `@relayerfi/agent-sdk` and `@relayerfi/skills-client` lives in `packages/` of the Relayer monorepo.
+  <Card title="Agent SDK" icon="github" href="https://github.com/SherryLabs/relayer">
+    Source for `@relayerfi/agent-sdk` lives in `packages/` of the Relayer monorepo.
   </Card>
 </CardGroup>
