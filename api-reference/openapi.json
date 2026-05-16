@@ -4949,7 +4949,7 @@
         },
         "summary": "Get swap quote with smart routing (public)",
         "tags": [
-          "Action: Quote (Public)"
+          "Action: Execute"
         ],
         "x-codeSamples": [
           {
@@ -7905,9 +7905,6 @@
     },
     {
       "name": "Action: Execute"
-    },
-    {
-      "name": "Action: Quote (Public)"
     },
     {
       "name": "Action: Tokens",

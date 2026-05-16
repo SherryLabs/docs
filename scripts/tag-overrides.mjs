@@ -24,4 +24,10 @@ export const tagOverrides = {
   "GET /signing/wallets/{walletId}/addresses": ["Addresses"],
   "POST /signing/wallets/{walletId}/addresses": ["Addresses"],
   "GET /signing/wallets/{walletId}/addresses/{addressId}": ["Addresses"],
+
+  // The public swap quote is part of the swap-execute lifecycle (quote →
+  // prepare → confirm), so it lives under "Widget Execute" in the nav.
+  // Keeping the separate "Action: Quote (Public)" tag would create a
+  // one-endpoint group with no narrative value.
+  "GET /action/execute/swap/quote": ["Action: Execute"],
 };
