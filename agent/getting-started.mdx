@@ -39,7 +39,7 @@ This is the full path from "I just heard about Relayer" to "my agent is running,
   </Step>
 
   <Step title="5. Create your operator wallet (if you don't have one)">
-    The agent's USDC funds come from your **operator wallet** — a self-custodial wallet your workspace owns. Create it via the Signing Kit prepare/confirm flow, or from the dashboard's **Wallets** tab.
+    The agent's USDC funds come from your **operator wallet** — a self-custodial wallet your workspace owns. Create it from the dashboard's **Wallets** tab (wallet creation is passkey-stamped, so it runs in the dashboard today).
 
     Fund it with USDC on Solana via:
     - Direct transfer from your existing wallet (Phantom, Solflare, etc.)
@@ -47,17 +47,15 @@ This is the full path from "I just heard about Relayer" to "my agent is running,
     - A test airdrop (sandbox only)
   </Step>
 
-  <Step title="6. Provision your first agent (3-round flow)">
-    From the dashboard → **Agents → New agent**, or via API:
+  <Step title="6. Provision your first agent">
+    Go to the dashboard → **Agents → New agent**. Provisioning is a 3-round passkey flow (the dashboard runs it end-to-end):
 
-    1. `POST /v1/agents/prepare` — your backend calls this; returns an unsigned activity
-    2. Dashboard prompts you to stamp the activity with your passkey (browser-side WebAuthn)
-    3. `POST /v1/agents/confirm-user` — backend submits the stamped activity, gets back the `agentId` and a second unsigned activity
-    4. Dashboard stamps again with passkey
-    5. `POST /v1/agents/confirm-policies` — backend submits, receives the **`agentSecret`**
+    1. The dashboard prepares an unsigned user-create activity, you stamp it with your passkey
+    2. The dashboard submits the stamped activity, prepares a second activity for the agent's policies, you stamp again
+    3. The dashboard submits the policies and shows you the **`agentSecret`**
 
     <Warning>
-      The `agentSecret` is shown **once**. Push it directly to your agent's secret store. There is no recovery — if lost, you must rotate via `POST /v1/agents/{id}/rotate`.
+      The `agentSecret` is shown **once**. Copy it directly into your agent's secret store. There is no recovery — if lost, rotate via `POST /v1/agents/{id}/rotate`.
     </Warning>
 
     Each agent gets:
@@ -92,16 +90,9 @@ This is the full path from "I just heard about Relayer" to "my agent is running,
   </Step>
 
   <Step title="8. Fund the agent wallet">
-    Move USDC from your operator wallet to the agent wallet via the 2-step fund flow:
+    From the dashboard's agent detail view, move USDC from your operator wallet to the agent wallet. The dashboard runs a 2-round passkey flow under the hood: it prepares the transfer activity, you stamp with your passkey, it broadcasts to Solana.
 
-    ```text
-    POST /v1/agents/{id}/fund/prepare  { amountUSDC: "100" }
-    → returns unsigned activity for passkey stamping
-    POST /v1/agents/{id}/fund/confirm  { stampedActivity: "..." }
-    → broadcasts the transfer to Solana
-    ```
-
-    Or do it from the dashboard's agent detail view. Either way, the agent now has USDC and can spend up to its `payments` budget.
+    Once funded, the agent can spend up to its `payments` budget.
   </Step>
 
   <Step title="9. Install the SDK">

@@ -6,6 +6,10 @@ sidebarTitle: "Flow Guide"
 
 The Agent Kit lifecycle has four stages: **provision**, **fund**, **operate**, and **respond to approvals**. Every passkey-signed step uses prepare/confirm so private key material never leaves the secure enclave.
 
+<Note>
+  The **provision** and **fund** stages are passkey-stamped — today they run from the dashboard, which orchestrates the prepare/confirm rounds against the API endpoints shown below. The **operate** stage (runtime HMAC) is fully backend/SDK-driven.
+</Note>
+
 ## 1. Provision an agent (3-round passkey flow)
 
 ```mermaid
@@ -27,7 +31,7 @@ sequenceDiagram
   API-->>FE: {agentId, agentSecret} ← shown ONCE
 ```
 
-If the flow is interrupted between rounds 2 and 3, resume with `POST /v1/agents/{id}/prepare-policies`. Abandon with `DELETE /v1/agents/{id}` while status is `pending_policies`.
+If the flow is interrupted between rounds 2 and 3, the dashboard resumes via `POST /v1/agents/{id}/prepare-policies`. To abandon, call `DELETE /v1/agents/{id}` while status is `pending_policies`.
 
 ## 2. Fund the agent wallet
 

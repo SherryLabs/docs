@@ -4,7 +4,7 @@ description: "TypeScript SDK for building blockchain action metadata — works i
 sidebarTitle: "Relayer SDK"
 ---
 
-The Relayer SDK (`@sherrylinks/sdk`) is the TypeScript library for building blockchain action metadata. It defines the action schema, validates metadata before submission, and provides template helpers for common parameter types. Use it to create the metadata object that powers a Relayer Trigger.
+The Relayer SDK (`@relayerfi/action-kit`) is the TypeScript library for building blockchain action metadata. It defines the action schema, validates metadata before submission, and provides template helpers for common parameter types. Use it to create the metadata object that powers a Relayer Trigger.
 
 <Note>
 The Relayer SDK metadata layer is **mode-agnostic**. Whether your integration uses Passkey Signing (passkey) or Metadata Mode (bring your own wallet), the metadata schema and validation are identical. The SDK defines *what* action to perform — the integration mode determines *how* signing happens.
@@ -15,11 +15,11 @@ The Relayer SDK metadata layer is **mode-agnostic**. Whether your integration us
 <CodeGroup>
 
 ```bash npm
-npm install @sherrylinks/sdk viem
+npm install @relayerfi/action-kit viem
 ```
 
 ```bash pnpm
-pnpm add @sherrylinks/sdk viem
+pnpm add @relayerfi/action-kit viem
 ```
 
 </CodeGroup>
@@ -48,7 +48,7 @@ pnpm add @sherrylinks/sdk viem
 ## Quick Start — Transfer Action
 
 ```typescript
-import { createMetadata, type Metadata } from '@sherrylinks/sdk';
+import { createMetadata, type Metadata } from '@relayerfi/action-kit';
 
 const metadata: Metadata = {
   url: 'https://myapp.example',
@@ -73,7 +73,7 @@ const validatedMetadata = createMetadata(metadata);
 ## Quick Start — Blockchain Action
 
 ```typescript
-import { createMetadata, type Metadata } from '@sherrylinks/sdk';
+import { createMetadata, type Metadata } from '@relayerfi/action-kit';
 
 const metadata: Metadata = {
   url: 'https://myapp.example',
@@ -104,7 +104,7 @@ const validatedMetadata = createMetadata(metadata);
 Use `validateMetadata` for non-throwing validation with detailed error reporting:
 
 ```typescript
-import { validateMetadata } from '@sherrylinks/sdk';
+import { validateMetadata } from '@relayerfi/action-kit';
 
 const result = validateMetadata(metadata);
 
@@ -120,7 +120,7 @@ if (result.isValid) {
 `PARAM_TEMPLATES` provides predefined parameter shapes (email, token select, etc.) so you do not have to hand-craft common parameter structures:
 
 ```typescript
-import { createParameter, PARAM_TEMPLATES } from '@sherrylinks/sdk';
+import { createParameter, PARAM_TEMPLATES } from '@relayerfi/action-kit';
 
 const tokenParam = createParameter(PARAM_TEMPLATES.TOKEN_SELECT, {
   name: 'token',
