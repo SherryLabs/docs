@@ -1,148 +1,175 @@
 ---
 title: "Error Reference"
-description: "HTTP error codes, error response format, and business errors"
+description: "HTTP status codes, error response format, common business errors, and retry guidance"
 sidebarTitle: "Error Reference"
 ---
 
-All Relayer API errors follow a consistent response envelope. This reference covers the error format, HTTP status codes, and common business errors.
+All Relayer API errors follow a consistent response envelope. This page covers the error format, HTTP status codes, common business errors, and how to handle them.
 
-## Error Response Format
+## Error response format
 
 Every error response uses the same envelope as successful responses, with `success: false`:
 
 ```json
 {
   "success": false,
-  "message": "API key not found",
-  "statusCode": 401,
-  "timestamp": "2026-03-28T12:00:00.000Z",
-  "path": "/v1/exchange/quotes"
+  "message": "Validation failed: amount must be positive",
+  "statusCode": 400,
+  "timestamp": "2026-05-15T12:00:00.000Z",
+  "path": "/v1/payout/accounts/quote"
 }
 ```
 
 | Field | Type | Description |
-|-------|------|-------------|
+|---|---|---|
 | `success` | `boolean` | Always `false` for errors |
 | `message` | `string` | Human-readable error description |
 | `statusCode` | `number` | HTTP status code (mirrors the response status) |
 | `timestamp` | `string` | ISO 8601 timestamp of when the error occurred |
 | `path` | `string` | The request path that returned the error |
 
-## HTTP Status Codes
+Some agent endpoints add structured error codes inside the body for client-side dispatch — see [Agent-specific errors](#agent-specific-errors) below.
 
-### 4xx Client Errors
+## HTTP status codes
+
+### 4xx — client errors
 
 | Status | Name | Meaning |
-|--------|------|---------|
+|---|---|---|
 | `400` | Bad Request | Request body or query parameters are invalid or missing required fields |
-| `401` | Unauthorized | API key is missing, malformed, or expired |
-| `403` | Forbidden | API key is valid but lacks permission for this resource or operation |
+| `401` | Unauthorized | API key / JWT / HMAC is missing, malformed, expired, or invalid |
+| `402` | Payment Required | An x402-gated resource requires a USDC payment (Agent Kit only) |
+| `403` | Forbidden | Caller is authenticated but lacks scope or permissions for this endpoint |
 | `404` | Not Found | The requested resource does not exist (wrong ID, deleted, or wrong path) |
-| `409` | Conflict | The operation conflicts with existing state (e.g., duplicate resource) |
+| `409` | Conflict | Operation conflicts with existing state (e.g., duplicate resource) |
 | `422` | Unprocessable Entity | Request is well-formed but fails business validation (e.g., insufficient balance) |
 | `429` | Too Many Requests | Rate limit exceeded — back off and retry |
 
-### 5xx Server Errors
+### 5xx — server errors
 
 | Status | Name | Meaning |
-|--------|------|---------|
+|---|---|---|
 | `500` | Internal Server Error | Unexpected server-side error — contact support if persistent |
-| `502` | Bad Gateway | Upstream service (Turnkey, Bridge, etc.) returned an error |
+| `502` | Bad Gateway | An upstream service returned an error |
 | `503` | Service Unavailable | API is temporarily unavailable — retry with exponential backoff |
 
-## Authentication Errors
+### 2xx with caveats
+
+| Status | Meaning |
+|---|---|
+| `202 Accepted` | Returned by signing endpoints when the action is queued for human approval. Body contains `{ approvalId }`. Poll `/v1/signing/approvals/{id}` until resolved |
+
+## Authentication errors
 
 <Tabs>
-  <Tab title="Missing Key">
-```json
-{
-  "success": false,
-  "message": "Authorization header is missing",
-  "statusCode": 401,
-  "timestamp": "2026-03-28T12:00:00.000Z",
-  "path": "/v1/exchange/quotes"
-}
-```
-
-**Fix:** Add the `Authorization: ApiKey rk_client_key_v1_...` header to your request.
+  <Tab title="Missing key">
+    ```json
+    {
+      "success": false,
+      "message": "Authorization header is missing",
+      "statusCode": 401,
+      "timestamp": "2026-05-15T12:00:00.000Z",
+      "path": "/v1/signing/wallets"
+    }
+    ```
+    **Fix:** Add the `Authorization: ApiKey rk_...` header to your request.
   </Tab>
-  <Tab title="Invalid Key">
-```json
-{
-  "success": false,
-  "message": "API key not found",
-  "statusCode": 404,
-  "timestamp": "2026-03-28T12:00:00.000Z",
-  "path": "/v1/exchange/quotes"
-}
-```
-
-**Fix:** Verify your API key is correct and was not revoked. Generate a new key from the dashboard if needed.
+  <Tab title="Invalid key">
+    ```json
+    {
+      "success": false,
+      "message": "API key not found",
+      "statusCode": 404,
+      "timestamp": "2026-05-15T12:00:00.000Z",
+      "path": "/v1/signing/wallets"
+    }
+    ```
+    **Fix:** Verify your API key is correct and was not revoked. Sandbox keys don't work in production — and vice versa.
   </Tab>
-  <Tab title="Insufficient Permissions">
-```json
-{
-  "success": false,
-  "message": "Insufficient permissions for this resource",
-  "statusCode": 403,
-  "timestamp": "2026-03-28T12:00:00.000Z",
-  "path": "/v1/signing/wallets"
-}
-```
-
-**Fix:** Your API key's role does not have access to this Kit or endpoint. Contact your account admin to update module permissions.
+  <Tab title="Insufficient scope">
+    ```json
+    {
+      "success": false,
+      "message": "Insufficient permissions for this resource",
+      "statusCode": 403,
+      "timestamp": "2026-05-15T12:00:00.000Z",
+      "path": "/v1/signing/wallets"
+    }
+    ```
+    **Fix:** Your API key's scope (e.g. `integrator:read`) does not cover this endpoint. Generate a new key with the right scope, or check whether the endpoint is dashboard-only (in which case it's not callable from external integrations).
   </Tab>
 </Tabs>
 
-## Validation Errors
+## Agent-specific errors
 
-`400` errors include details about what failed:
+Agent endpoints use structured error codes inside the body so the SDK can dispatch programmatically:
+
+| `error` code | HTTP | Cause |
+|---|---|---|
+| `invalid_auth` | 401 | Missing HMAC headers, agent not found, or signature mismatch |
+| `expired_timestamp` | 401 | `x-request-timestamp` drift exceeds ±60 seconds |
+| `agent_killed` | 401 | Agent status is `killed` — re-provision before retrying |
+| `budget_exhausted` | 402 / 403 | One or more budget layers exhausted. Response includes `failedLayers: ["infra" \| "tokens" \| "payments"]` |
+| `kill_switch_active` | 503 | Global kill switch tripped — payments blocked (fail-safe) |
+| `x402_payment_required` | 402 | The downstream x402 resource requires payment — handled by `x402fetch` |
+| `approval_required` | 202 | Payment exceeds approval threshold — body contains `approvalId` to poll |
+
+## Validation errors
+
+`400` responses include the specific field and constraint that failed in `message`:
 
 ```json
 {
   "success": false,
   "message": "Validation failed: amount must be a positive number",
   "statusCode": 400,
-  "timestamp": "2026-03-28T12:00:00.000Z",
-  "path": "/v1/exchange/quotes"
+  "timestamp": "2026-05-15T12:00:00.000Z",
+  "path": "/v1/payout/accounts/quote"
 }
 ```
 
-Check the `message` field for the specific field and constraint that failed.
+For requests with multiple validation failures, `message` typically lists the first offending field. Check your request payload against the schema in the [API Reference](/api-reference/introduction).
 
-## Business Errors
+## Common business errors
 
-Common business-logic errors returned as `422 Unprocessable Entity`:
+`422 Unprocessable Entity` is returned when a request is well-formed but conflicts with business rules:
 
-| Message | Kit | Cause |
-|---------|-----|-------|
-| `Insufficient balance for settlement` | Exchange | Escrow wallet does not have enough funds to complete the OTC trade |
-| `Quote has expired` | Exchange | The quote's validity window has passed — request a new quote |
-| `Wallet already exists for this operator` | Signing | Attempting to create a duplicate wallet |
-| `Recipient not found` | Payout | The recipient ID does not exist for this operator |
-| `Payout rail not configured` | Payout | The operator has not set up a Bridge payout rail — complete onboarding first |
-| `Action not registered` | Action | The blockchain action action ID does not exist in the directory |
+| `message` (representative) | Kit | Cause |
+|---|---|---|
+| `Quote has expired` | Payout | The quote's validity window has passed — request a new quote |
+| `Wallet already exists` | Signing | Attempting to create a duplicate wallet |
+| `Recipient not found` | Payout | The recipient ID does not exist in this workspace |
+| `Insufficient balance` | Payout | Withdrawal address doesn't have enough stablecoin to settle |
+| `Order already settled` | Payout | Trying to cancel an order past `awaiting` status |
+| `Agent has insufficient budget` | Agent | One of the 3 budget layers is exhausted |
+| `Pending policies — finish the create flow` | Agent | Agent is mid-provisioning. Complete with `confirm-policies` or abandon with `DELETE /v1/agents/{id}` |
+| `Passkey signature invalid` | Signing | The stamped activity does not match the unsigned payload |
 
-## Error Handling Patterns
+## Error handling patterns
 
 <Steps>
   <Step title="Check the status code first">
-    `4xx` errors are your responsibility — inspect the `message` field and fix the request. `5xx` errors are server-side — retry with backoff.
+    `4xx` errors are your responsibility — inspect the `message` and fix the request. `5xx` errors are server-side — retry with backoff.
   </Step>
   <Step title="Read the message field">
-    The `message` field is human-readable and explains the specific problem. Log it for debugging and surface an appropriate message to your users.
+    The `message` is human-readable and explains the specific problem. Log it for debugging and surface a user-appropriate message in your UI.
   </Step>
   <Step title="Handle 401 and 403 separately">
-    `401` means unauthenticated (missing or invalid key). `403` means authenticated but not authorized (permissions issue). These require different resolution paths.
+    `401` means unauthenticated (missing or invalid credentials). `403` means authenticated but not authorized (scope or permissions issue). These require different resolution paths.
   </Step>
   <Step title="Retry 429 and 5xx with backoff">
-    Rate limit (`429`) and server errors (`502`, `503`) are transient. Retry with exponential backoff: 1s, 2s, 4s, 8s. Give up after 3-4 attempts and surface the error.
+    Rate limit (`429`) and server errors (`502`, `503`) are transient. Retry with exponential backoff: 1s, 2s, 4s, 8s. Give up after 3-4 attempts and surface the error to the user.
+  </Step>
+  <Step title="Treat 202 as 'pending', not an error">
+    A `202` response means the action was accepted but is awaiting human approval (signing flows) or polling resolution (agent x402). It's not a failure — poll the relevant resource until you get a final state.
   </Step>
 </Steps>
 
-## Getting Help
+## Getting help
 
-If you encounter a persistent `500` error or unexpected behavior, contact support at [support@relayer.fi](mailto:support@relayer.fi) with:
+If you encounter a persistent `500` error or unexpected behavior, contact [support@relayer.fi](mailto:support@relayer.fi) with:
+
 - The full error response body
-- The request path and method
-- Your API key prefix (first 20 characters only — never share the full key)
+- The request path, method, and (sanitized) payload
+- Your API key prefix (**first 20 characters only** — never share the full key)
+- The `timestamp` from the error envelope (we use it to locate server-side logs)

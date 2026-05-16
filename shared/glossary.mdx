@@ -8,74 +8,69 @@ Reference for domain terms used throughout the Relayer documentation.
 
 ## A
 
-**Action Kit**
-The Relayer Kit that handles blockchain action registration, transaction builders, token management, and on-chain event indexing. Accessed via `/v1/action/*`.
+**Agent Kit**
+The Relayer Kit that lets you ship budget-enforced AI agents — each agent holds a USDC wallet, can sign Solana transactions, and pays for x402-gated resources. Enforces a 3-layer budget guard plus a kill switch. Accessed via `/v1/agents/*` and `/v1/action/skills/*`.
 
 **API Key**
-A secret credential that identifies an operator and authorizes requests to the Relayer API. Format: `rk_client_key_v1_...`. Passed in the `Authorization: ApiKey <key>` header.
+A secret credential that identifies an integrator workspace and authorizes requests to the Relayer API. Format: `rk_client_key_v1_...`. Passed in the `Authorization: ApiKey <key>` header.
 
-## E
-
-**Escrow**
-A holding arrangement where funds are held by a neutral party (in Relayer's case, a smart contract or Turnkey-managed wallet) until conditions are met. Used in the Signing Kit for secure asset custody before settlement.
-
-**Escrow Wallet**
-A Turnkey-managed wallet used to hold funds temporarily during an OTC transaction or signing flow. Created and managed via the Signing Kit (`/v1/signing/wallets`).
-
-**Exchange Kit**
-The Relayer Kit that handles OTC exchange operations: quote generation, spread configuration, client onboarding, and settlement. Accessed via `/v1/exchange/*`.
+**Approval**
+A human-in-the-loop gate for signing. Transactions above a configured threshold enter a pending queue and must be approved (passkey-stamped) by an authorized team member before they are signed.
 
 ## I
 
 **Integrator**
-An operator or developer building a product on top of Relayer's API. Integrators consume one or more Kits depending on their use case.
+A workspace (operator or developer) building a product on top of Relayer. Each integrator has its own wallets, API keys, team, and signing policies. Multiple integrators can sit under the same operator account.
 
 ## K
 
 **Kit**
-A domain-scoped module in the Relayer API. Each Kit covers a distinct area of functionality (Exchange, Signing, Payout, Action, Widget) and exposes its own set of endpoints under a versioned prefix.
+A domain-scoped module in the Relayer API. Each Kit covers a distinct area of functionality (Signing, Agent, Payout, Widget) and exposes its own set of endpoints under the `/v1` prefix.
 
 ## M
 
-**Blockchain Action**
-A composable on-chain transaction or workflow registered in the Action Kit. Blockchain actions define a set of parameters and actions that can be triggered by users through the Widget Kit or directly via the API. Registered via `/v1/action/directory`.
+**Metadata Mode**
+The Widget Kit integration mode where the widget returns transaction routing and calldata to your application, and you sign and broadcast with your own wallet stack (MPC, HSM, MetaMask, etc.). Compare with **Passkey Signing**.
 
 ## O
 
 **Operator**
-A business or developer who has an account with Relayer and integrates the API into their product. Operators receive an API key and configure which Kits and modules are active for their account.
-
-**OTC (Over-the-Counter)**
-A method of trading where transactions are negotiated directly between parties rather than on an exchange order book. Relayer's Exchange Kit provides OTC infrastructure for operators offering crypto buy/sell services to their users.
+A business or developer who has an account with Relayer and integrates the API into their product. Operators receive an API key and configure which Kits and modules are active for their workspace.
 
 ## P
 
-**Payout Kit**
-The Relayer Kit that handles fiat and crypto payouts. Covers payout rail configuration (via Bridge), recipient management, and settlement tracking. Accessed via `/v1/payout/*`.
+**Passkey**
+A WebAuthn credential bound to a user's device (Face ID, fingerprint, security key). Used to authorize signing and approval actions. The passkey is the **only thing that can authorize signing** — it cannot be impersonated by an API key or HMAC secret. See [Auth & Custody](/shared/auth-model).
 
-**Payout Rails**
-The underlying payment network used to move fiat funds. In Relayer, payout rails are configured via Bridge and support bank transfers, ACH, SEPA, and similar methods.
+**Passkey Signing**
+The Widget Kit integration mode where the user stamps each transaction with a passkey via WebAuthn. Keys live in a hardware enclave but are **inert without the user's passkey** — Relayer does not custody. Compare with **Metadata Mode**.
+
+**Payout Kit**
+The Relayer Kit that handles fiat on/off-ramp, virtual accounts, recipient management, and settlement. Accessed via `/v1/payout/*` and `/v1/orders`.
+
+**Policy**
+See **Signing Policy**.
+
+**Pre-authorization**
+A bounded mandate granted by a passkey at setup time (typically by configuring policies + budgets + threshold for an agent). The agent can then act autonomously within those bounds via HMAC at runtime. Above the threshold, a fresh passkey stamp is required. Distinguishes Agent Kit from per-tx passkey signing.
 
 ## S
 
 **Settlement**
-The final transfer of funds that completes a transaction. In OTC exchange flows, settlement occurs after a quote is accepted and funds are confirmed. In payout flows, settlement confirms fiat delivery to the recipient.
+The final transfer of funds that completes a transaction. In payout flows, settlement confirms fiat delivery to the recipient bank.
 
 **Signing Kit**
-The Relayer Kit that handles wallet creation, escrow accounts, and transaction signing using Turnkey's key management infrastructure. Accessed via `/v1/signing/*`.
+The Relayer Kit that handles self-custodial wallet creation and transaction signing via passkeys. Private keys live inside a hardware-secured enclave — neither Relayer nor the integrator sees raw key material. Accessed via `/v1/signing/*` and `/v1/transactions/*`.
 
 **Signing Policy**
-A set of rules attached to a Turnkey wallet that controls which transactions can be signed. Policies can restrict by value, destination address, token type, or other conditions. Configured in the Signing Kit.
-
-**Spread**
-The difference between the buy price and the sell price that an operator captures as revenue in an OTC exchange. Configured per operator in the Exchange Kit via `/v1/exchange/spreads`.
-
-## T
-
-**Turnkey**
-The key management infrastructure used by the Signing Kit. Turnkey provides secure, policy-controlled wallet creation and transaction signing without exposing raw private keys.
+A set of rules attached to a wallet or workspace that controls which transactions can be signed. Policies can restrict by value, destination address, token type, or time window. Enforced before any signing operation.
 
 ## W
 
 **Widget Kit**
-Pre-built React components that embed Relayer functionality into a frontend application. Widgets wrap Kit API calls and provide a ready-to-use UI for swap, payout, and action flows. Installed via npm.
+A set of React components and adapters that embed Relayer's canonical protocol widgets (swap, transfer, crosschain) into a frontend application. Installable via npm — `@relayerfi/widget-kit-react`.
+
+## X
+
+**x402**
+HTTP status code 402 "Payment Required" — used by skills and remote services to request a USDC payment before returning data. The Agent Kit ships an `x402fetch` helper that handles 402 detection, payment, and retry transparently.

@@ -1,59 +1,42 @@
 ---
 title: "Architecture Overview"
-description: "How Relayer Kits relate to each other and to external infrastructure"
+description: "How Relayer Kits relate to each other and to your application"
 sidebarTitle: "Architecture"
 ---
 
-Relayer is organized into Kits. Each Kit covers a distinct domain and exposes a set of REST endpoints under a versioned prefix. This page shows how the Kits relate to each other and to the external infrastructure they depend on.
+Relayer is organized into Kits. Each Kit covers a distinct domain and exposes a set of REST endpoints under the `/v1` prefix. This page shows how the Kits relate to each other and to your application.
 
 ## Kit Structure
 
 ```mermaid
 graph TB
     subgraph "Your Application"
-        APP[Operator App / Dashboard]
+        APP[Your Backend / Dashboard]
+        FE[Your Frontend]
     end
 
     subgraph "Relayer API /v1"
-        EX[Exchange Kit<br/>/v1/exchange/*]
         SI[Signing Kit<br/>/v1/signing/*]
+        AG[Agent Kit<br/>/v1/agents/*]
         PA[Payout Kit<br/>/v1/payout/*]
-        AC[Action Kit<br/>/v1/action/*]
-        WI[Widget Kit<br/>React components]
+        WI[Widget Kit<br/>/v1/action/builders/* + /execute/*]
     end
 
-    subgraph "External Infrastructure"
-        TK[Turnkey<br/>Key Management]
-        BR[Bridge<br/>Fiat Rails]
-        BC[Blockchain<br/>EVM Networks]
-        UN[Uniswap<br/>Swap Protocol]
-        AA[Aave<br/>Lending Protocol]
-    end
-
-    APP -->|ApiKey auth| EX
-    APP -->|ApiKey auth| SI
-    APP -->|ApiKey auth| PA
-    APP -->|ApiKey auth| AC
-    APP -->|npm install| WI
-
-    EX -->|OTC settlement| BC
-    SI -->|key management| TK
-    SI -->|escrow wallets| BC
-    PA -->|fiat on/off-ramp| BR
-    AC -->|swap execution| UN
-    AC -->|lending execution| AA
-    AC -->|event indexing| BC
+    APP -->|Bearer JWT or ApiKey| SI
+    APP -->|Bearer JWT or ApiKey| AG
+    APP -->|Bearer JWT or ApiKey| PA
+    APP -->|Bearer JWT or ApiKey| WI
+    FE -->|npm install @relayer-fi/widgets| WI
 ```
 
 ## Kit Responsibilities
 
 | Kit | Prefix | What It Does |
 |-----|--------|-------------|
-| **Exchange** | `/v1/exchange` | OTC quotes, spread configuration, client management, settlement |
-| **Signing** | `/v1/signing` | Wallet creation, escrow accounts, transaction signing, key policy |
-| **Payout** | `/v1/payout` | Payout rail setup, recipient management, settlement tracking |
-| **Action** | `/v1/action` | Blockchain action registry, transaction builders, token lists, on-chain indexing |
-| **Widget** | npm package | Pre-built React components that wrap Kit API calls |
+| **Signing** | `/v1/signing`, `/v1/transactions` | Self-custodial wallets, transaction prepare/confirm, passkey signing, approval policies |
+| **Agent Kit** | `/v1/agents`, `/v1/action/skills` | Budget-enforced AI agents that can sign transactions and pay for x402 resources |
+| **Payout** | `/v1/payout`, `/v1/orders` | Fiat on/off-ramp, recipient management, virtual accounts, payment settlement |
+| **Widget Kit** | `/v1/action/builders`, `/v1/action/execute`, npm packages | Embeddable widgets for canonical protocols (swap, transfer, bridge) |
 
 ## Request Flow
 
@@ -64,32 +47,31 @@ sequenceDiagram
     participant App as Your App
     participant API as Relayer API
     participant Kit as Kit Module
-    participant Infra as External Service
 
     App->>API: POST /v1/{kit}/{resource}<br/>Authorization: ApiKey rk_...
-    API->>API: Validate API key + RBAC
+    API->>API: Validate API key + module + permissions
     API->>Kit: Route to Kit module
-    Kit->>Infra: Call external service (if needed)
-    Infra-->>Kit: Response
     Kit-->>API: Result
     API-->>App: { success, data, statusCode, ... }
 ```
 
 ## Authentication Model
 
-All requests authenticate with an operator API key in the `Authorization` header:
+Every request authenticates with an API key in the `Authorization` header:
 
 ```
 Authorization: ApiKey rk_client_key_v1_your_key_here
 ```
 
-The API key identifies the operator and determines which Kits and resources are accessible based on the operator's module configuration and team role permissions (v2.0+).
+The API key identifies the integrator (your workspace) and determines which Kits and resources are accessible based on the workspace's active modules and the caller's role.
+
+Some surfaces also accept a session JWT (`Authorization: Bearer <jwt>`) for browser-side callers from the Relayer dashboard, and the Agent Kit accepts an HMAC-signed `X-Agent-Auth` header for runtime calls from the agent SDK. See [Authentication](/get-started/authentication) for the full matrix.
 
 ## Environments
 
 | Environment | Base URL | Use |
 |-------------|----------|-----|
-| Sandbox | `https://sandbox.relayer.fi` | Development and testing |
-| Production | `https://api.relayer.fi` | Live operations |
+| Sandbox | `https://relayer-api.onrender.com/v1` | Development and testing |
+| Production | `https://api.relayer.fi/v1` | Live operations |
 
 All Kit endpoints and authentication patterns are identical across environments.

@@ -1,0 +1,178 @@
+---
+title: "Auth & Custody Model"
+description: "Self-custodial guarantee + two dimensions of choice (key holder × pre-authorization scope). Read this before designing your integration."
+sidebarTitle: "Auth & Custody"
+---
+
+This page is the architectural reference for **what you can and cannot do with each kind of credential**. Read it before designing your integration — the wrong assumption here is a security incident.
+
+## The guarantee
+
+**Relayer never holds keys that anyone at Relayer can use without your explicit authorization.** The cryptographic authority to sign always lives in one of two places:
+
+- **Your wallet stack** — MPC, HSM, MetaMask, Phantom, Fireblocks, Privy server-side. You picked it; you sign with it.
+- **A hardware enclave (HSM) gated by your passkey** — Relayer/Turnkey runs the infrastructure, but the key material is **inert without a WebAuthn stamp from your registered passkey**. Nobody at Relayer can use it.
+
+In the second case, the keys *physically reside* on Relayer-managed infrastructure, but they are **functionally self-custodial**: no Relayer employee, no rogue code, no compromised server can move funds. The only thing that can authorize signing is the passkey on your (or your user's) device.
+
+This is the distinction between **custody** (someone else can move your funds) and **enclave-hosted self-custody** (only your passkey can move your funds, even though Relayer runs the enclave).
+
+## The two dimensions
+
+Every signing decision is the product of two choices:
+
+### Dimension 1 — Who holds the key?
+
+| Choice | What it means |
+|---|---|
+| **Your wallet stack** | You bring MPC, HSM, browser wallet, or any signer. Relayer never sees private material. |
+| **Enclave + your passkey** | HSM-protected key, only usable with your WebAuthn stamp. Functionally self-custodial. |
+
+### Dimension 2 — What's the scope of pre-authorization?
+
+| Choice | What it means |
+|---|---|
+| **Per-transaction stamping** | The passkey holder approves each transaction at the moment it happens. Common for consumer-facing flows. |
+| **Pre-authorized bounded delegation** | The passkey holder signs once to grant a bounded mandate (policies + budgets + threshold). An agent operates autonomously within those bounds. Above-threshold actions still require a stamp. |
+
+## The combinations
+
+| Key holder | Scope | What it looks like | Backend-only flows possible? |
+|---|---|---|---|
+| **Your wallet stack** | Per-tx | You sign every tx with your MPC/HSM/wallet | ✅ Yes |
+| **Your wallet stack** | Pre-authorized | Your wallet stack runs autonomously per your own policies | ✅ Yes |
+| **Enclave + passkey** | Per-tx | End-user stamps each tx in browser (Widget Kit default) | ❌ No — user must be present |
+| **Enclave + passkey** | Pre-authorized | Agent Kit: passkey-stamped at provisioning, HMAC at runtime within policies | ✅ Yes — until threshold crossed |
+
+There is no scenario where Relayer holds custody in the legacy sense. There is no scenario where someone at Relayer can move user funds.
+
+## What each credential type can do
+
+The API supports three credential types. **Each is necessary but not always sufficient.**
+
+### `Authorization: ApiKey rk_client_key_v1_...`
+
+Backend integrations. Issued from the dashboard, scoped (integrator / integrator:read / integrator:write).
+
+| ApiKey **can** | ApiKey **cannot** |
+|---|---|
+| Read any non-sensitive resource in your workspace | Sign transactions on its own |
+| Create recipients, withdrawal addresses, virtual accounts | Approve above-threshold transactions |
+| Quote and execute payments (after on-chain funding is settled) | Register new passkeys for other users |
+| Configure agent budgets and policies | Rotate another user's passkey |
+| Issue invites, manage team (via internal scope) | Bypass signing policies on a wallet |
+| Initiate `prepare` half of any prepare/confirm flow | Complete the `confirm` half without a passkey-stamped activity |
+| List pending approvals | Mark an approval as approved |
+
+The recurring pattern: **ApiKey can prepare, configure, and observe — but the act of signing is always gated by a passkey or by an agent's HMAC.**
+
+### `X-Agent-Auth` HMAC headers
+
+Agent SDK runtime. HMAC-SHA256 signature derived from the agent secret issued at provisioning time.
+
+| HMAC **can** | HMAC **cannot** |
+|---|---|
+| Sign Solana transactions for the agent's own wallet | Spend more than the agent's `payments` budget allows |
+| Pay x402-gated resources within budget | Spend above the agent's `approvalThresholdUSDC` without a human stamp |
+| Emit telemetry events | Change the agent's own policies or budget |
+| Create wallets if policies allow (`Allow: Agent — Create Wallets`) | Provision a new agent or rotate another agent's secret |
+| Call any agent-allowlisted skill | Touch resources outside the agent's own scope |
+
+The agent's authority is **whatever the human granted at provisioning time, bounded by policies + budgets**. The HMAC secret doesn't grant cryptographic authority — it proves identity. The actual authorization comes from the policies signed by a human passkey when the agent was created.
+
+### Passkey (WebAuthn)
+
+The cryptographic root of all signing authority for enclave-hosted wallets. Lives on the user's device (Face ID, Touch ID, hardware security key, Windows Hello).
+
+| Passkey **can** | Passkey **cannot** |
+|---|---|
+| Sign any transaction the user's wallet supports | Be used remotely — must be physically present on the device |
+| Stamp prepare activities to create wallets, addresses, agents | Be copied off the device |
+| Approve above-threshold transactions on behalf of approvers | Be exported to a different device — recovery requires re-enrollment |
+| Authorize agent provisioning with policies | Sign for a wallet it wasn't enrolled to |
+| Recover access via the dashboard's email flow | Be impersonated by an API key or HMAC secret |
+
+The passkey is **the only thing that can authorize signing**. Everything else — ApiKey, HMAC, JWTs — is identity or session, not authority.
+
+## When you need a human passkey, period
+
+No matter what mode you're in, **a transaction above `approvalThresholdUSDC` requires a human to stamp it with a passkey**.
+
+That's not a limitation — it's the design. If you want a higher autonomy ceiling, raise the threshold consciously. If you want a kill switch on autonomy, lower it.
+
+For Agent Kit specifically, the approval response is HTTP 202 with an `approvalId`. The SDK polls until resolution (default 5-minute timeout, configurable). For raw API calls, you implement the same polling pattern manually.
+
+## Off-ramp specifically
+
+A common question: **can my off-ramp run 100% backend, no humans?**
+
+The off-ramp flow has 4 steps:
+
+1. **Setup** (`/payout/accounts/setup/*`, `/payout/recipients/*`) — ApiKey only ✅
+2. **Move stablecoins to the withdrawal address** — depends on who signs that on-chain transfer ⬇
+3. **Trigger settlement** (`/payout/accounts/execute`) — ApiKey only ✅
+4. **Fiat to recipient bank** — handled by the rails partner, out of band
+
+Step 2 is the question. Three patterns:
+
+- **Your wallet stack** signs the on-chain transfer → fully backend ✅
+- **Agent Kit** with policies that allow transfers to the withdrawal address → fully backend within bounds ✅
+- **End-user passkey wallet** signs the transfer per-tx → user must be present ❌
+
+There is **no scenario where Relayer prevents you from a backend-only off-ramp** — it depends on your key-holder model, not on us.
+
+## How to choose your model
+
+<CardGroup cols={2}>
+  <Card title="You hold the keys (your wallet stack)" icon="vault">
+    **When**: you already have MPC, HSM, or sufficient signing infrastructure; you want maximum control; you don't want end-users in the loop.
+    **Use**: ApiKey for everything Relayer does; sign on-chain transactions with your own stack.
+  </Card>
+  <Card title="Agent Kit (delegated, integrator-owned)" icon="robot">
+    **When**: you want backend automation but don't want to run signing infrastructure; budget and policy boundaries are sufficient governance.
+    **Use**: provision agents via passkey ceremony (one-time), then HMAC at runtime.
+  </Card>
+  <Card title="Per-end-user passkey wallets" icon="user">
+    **When**: end-users own their funds; each user is in the loop for every transaction; consumer-facing UX.
+    **Use**: Widget Kit Passkey Signing. Each end-user enrolls a passkey; each transaction prompts biometrics.
+  </Card>
+  <Card title="Hybrid (passkey + agent)" icon="layer-group">
+    **When**: end-users want autonomous helpers acting on their behalf within bounds.
+    **Use**: end-user enrolls passkey + grants policies → agent operates with HMAC within those bounds. Above threshold → user stamps.
+  </Card>
+</CardGroup>
+
+## Common mistakes to avoid
+
+<Warning>
+  **Mistake 1**: Treating ApiKey as authority. ApiKey lets you administer; it does not let you sign. If your backend needs to move funds, you need to either (a) hold your own keys, (b) run an agent, or (c) involve a user with a passkey.
+</Warning>
+
+<Warning>
+  **Mistake 2**: Confusing "Relayer hosts the enclave" with "Relayer holds custody". The enclave hosts the key material; the passkey on the user's device is the only thing that can use it. Relayer cannot move funds, period.
+</Warning>
+
+<Warning>
+  **Mistake 3**: Setting `approvalThresholdUSDC` to a large number "to avoid friction". That removes the human gate on large transactions — exactly the case where you want human confirmation. Default low; raise only with eyes open.
+</Warning>
+
+<Warning>
+  **Mistake 4**: Building a flow that assumes ApiKey can complete a `confirm` step. The prepare/confirm split is intentional: prepare returns an activity, the passkey stamps it, confirm submits the stamped result. There is no shortcut.
+</Warning>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/get-started/authentication">
+    Header formats, key scopes, HMAC payload spec, and code snippets per language.
+  </Card>
+  <Card title="Architecture" icon="diagram-project" href="/shared/architecture">
+    How the Kits fit together and where each credential type is accepted.
+  </Card>
+  <Card title="Signing Kit" icon="signature" href="/signing/overview">
+    The prepare/confirm flow in detail — and why it exists.
+  </Card>
+  <Card title="Agent Kit" icon="robot" href="/agent/overview">
+    Bounded delegation: passkey-stamped provisioning, HMAC at runtime.
+  </Card>
+</CardGroup>
