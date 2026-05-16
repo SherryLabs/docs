@@ -102,6 +102,7 @@ export const authModes = {
   "GET /agents/{id}/budget": "hmac-or-api-key",
   "GET /agents/{id}/wallet-balance": "hmac-or-api-key",
   "GET /agents/{id}/analytics": "hmac-or-api-key",
+  "GET /agents/{id}/status": "hmac-or-api-key",
 
   // ─────────────────────────────────────────────────────────────────────
   // Action / Widget — public quote, rest ApiKey

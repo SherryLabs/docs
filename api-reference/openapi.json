@@ -13,7 +13,6 @@
         "tags": [
           "App"
         ],
-        "description": "",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -1793,8 +1792,7 @@
             "label": "Node.js",
             "source": "const response = await fetch(\"https://api.relayer.fi/v1/agents\", {\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\nconst { data } = await response.json();\n// data: array of { id, name, status, createdAt, ... }"
           }
-        ],
-        "description": ""
+        ]
       }
     },
     "/agents/prepare": {
@@ -1854,8 +1852,7 @@
             "label": "Node.js",
             "source": "const response = await fetch(\"https://api.relayer.fi/v1/agents/prepare\", {\n  method: \"POST\",\n  headers: {\n    Authorization: `ApiKey ${process.env.RELAYER_API_KEY}`,\n    \"Content-Type\": \"application/json\",\n  },\n  body: JSON.stringify({\n    name: \"BI Reporter\",\n    description: \"Daily financial summary agent\",\n  }),\n});\nconst { data } = await response.json();\n// data.activity — pass to the dashboard for passkey stamping (Round 2 input)\n// data.agentDraftId — pass to /agents/confirm-user in Round 2"
           }
-        ],
-        "description": ""
+        ]
       }
     },
     "/agents/confirm-user": {
@@ -1904,6 +1901,7 @@
         "tags": [
           "Agents"
         ],
+        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: API key + passkey stamp.** Your backend calls this with `ApiKey`, but the body includes a passkey-stamped activity produced by WebAuthn in the user's browser. **Cannot be completed by backend alone.** See [Auth & Custody](/shared/auth-model).\n<!-- relayer:auth-badge:end -->",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -1915,8 +1913,7 @@
             "label": "Node.js",
             "source": "const response = await fetch(\"https://api.relayer.fi/v1/agents/confirm-user\", {\n  method: \"POST\",\n  headers: {\n    Authorization: `ApiKey ${process.env.RELAYER_API_KEY}`,\n    \"Content-Type\": \"application/json\",\n  },\n  body: JSON.stringify({\n    agentDraftId,           // from Round 1\n    stampedActivity,        // passkey-stamped CREATE_USERS activity\n  }),\n});\nconst { data } = await response.json();\n// data.agentId — the agent UUID, persist this\n// data.activity — unsigned CREATE_POLICIES activity for Round 3"
           }
-        ],
-        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: API key + passkey stamp.** Your backend calls this with `ApiKey`, but the body includes a passkey-stamped activity produced by WebAuthn in the user's browser. **Cannot be completed by backend alone.** See [Auth & Custody](/shared/auth-model).\n<!-- relayer:auth-badge:end -->"
+        ]
       }
     },
     "/agents/confirm-policies": {
@@ -1965,6 +1962,7 @@
         "tags": [
           "Agents"
         ],
+        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: API key + passkey stamp.** Your backend calls this with `ApiKey`, but the body includes a passkey-stamped activity produced by WebAuthn in the user's browser. **Cannot be completed by backend alone.** See [Auth & Custody](/shared/auth-model).\n<!-- relayer:auth-badge:end -->",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -1976,8 +1974,7 @@
             "label": "Node.js",
             "source": "const response = await fetch(\"https://api.relayer.fi/v1/agents/confirm-policies\", {\n  method: \"POST\",\n  headers: {\n    Authorization: `ApiKey ${process.env.RELAYER_API_KEY}`,\n    \"Content-Type\": \"application/json\",\n  },\n  body: JSON.stringify({\n    agentId,                // from Round 2\n    stampedActivity,        // passkey-stamped CREATE_POLICIES activity\n  }),\n});\nconst { data } = await response.json();\n// data.agentId, data.agentSecret — SHOWN ONCE. Persist agentSecret securely.\n// Pass both to the agent runtime as env vars:\n//   RELAYER_AGENT_ID, RELAYER_AGENT_SECRET"
           }
-        ],
-        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: API key + passkey stamp.** Your backend calls this with `ApiKey`, but the body includes a passkey-stamped activity produced by WebAuthn in the user's browser. **Cannot be completed by backend alone.** See [Auth & Custody](/shared/auth-model).\n<!-- relayer:auth-badge:end -->"
+        ]
       }
     },
     "/agents/{id}/prepare-policies": {
@@ -2025,7 +2022,6 @@
         "tags": [
           "Agents"
         ],
-        "description": "",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -2067,7 +2063,6 @@
         "tags": [
           "Agents"
         ],
-        "description": "",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -2122,8 +2117,7 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}`, {\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});"
           }
-        ],
-        "description": ""
+        ]
       }
     },
     "/agents/approvals": {
@@ -2161,7 +2155,6 @@
         "tags": [
           "Agents"
         ],
-        "description": "",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -2249,6 +2242,7 @@
         "tags": [
           "Agents"
         ],
+        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: agent HMAC.** Called by the agent SDK at runtime with `x-agent-id`, `x-agent-auth`, `x-request-timestamp` headers. **Not callable from backend ApiKey.** See [Authentication → Agent HMAC](/get-started/authentication).\n<!-- relayer:auth-badge:end -->",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -2260,8 +2254,7 @@
             "label": "Node.js (SDK)",
             "source": "import { RelayerSDK } from \"@relayerfi/agent-sdk\";\n\nconst sdk = new RelayerSDK({ /* ... */ });\n\n// The SDK batches automatically. Manual flush:\nsdk.emitEvent({ type: \"llm_call\", tokens: 1234, cost_usd: \"0.018\" });\nsdk.emitEvent({ type: \"api_call\", endpoint: \"https://example/api\", cost_usd: \"0.001\" });\nsdk.emitEvent({ type: \"payment\", amount: \"5.00\", currency: \"USDC\", to: \"skill_xyz\" });\n\n// EventBatcher flushes every 10s by default (configurable).\n// Up to 100 events per batch. Selective retry: 429/5xx retried, 4xx dropped."
           }
-        ],
-        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: agent HMAC.** Called by the agent SDK at runtime with `x-agent-id`, `x-agent-auth`, `x-request-timestamp` headers. **Not callable from backend ApiKey.** See [Authentication → Agent HMAC](/get-started/authentication).\n<!-- relayer:auth-badge:end -->"
+        ]
       }
     },
     "/agents/analytics/summary": {
@@ -2282,7 +2275,6 @@
         "tags": [
           "Agents"
         ],
-        "description": "",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -2339,8 +2331,7 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/kill`, {\n  method: \"POST\",\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\n// Irreversible. Wallet stays funded — withdraw via fund/prepare-style flow\n// from your integrator wallet if needed."
           }
-        ],
-        "description": ""
+        ]
       }
     },
     "/agents/{id}/pause": {
@@ -2385,8 +2376,7 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/pause`, {\n  method: \"POST\",\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\n// Reversible. Use for routine maintenance.\n// The SDK polls /status every 30s and stops issuing payment ops on pause."
           }
-        ],
-        "description": ""
+        ]
       }
     },
     "/agents/{id}/resume": {
@@ -2431,8 +2421,7 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/resume`, {\n  method: \"POST\",\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});"
           }
-        ],
-        "description": ""
+        ]
       }
     },
     "/agents/{id}/rotate": {
@@ -2480,8 +2469,7 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/rotate`, {\n  method: \"POST\",\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\nconst { data } = await response.json();\n// data.agentSecret — NEW secret. Old one revoked instantly.\n// Push the new secret to the agent runtime ASAP."
           }
-        ],
-        "description": ""
+        ]
       }
     },
     "/agents/{id}/analytics": {
@@ -2620,7 +2608,6 @@
         "tags": [
           "Agents"
         ],
-        "description": "",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -2663,7 +2650,6 @@
         "tags": [
           "Agents"
         ],
-        "description": "",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -2733,8 +2719,7 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/tools`, {\n  method: \"POST\",\n  headers: {\n    Authorization: `ApiKey ${process.env.RELAYER_API_KEY}`,\n    \"Content-Type\": \"application/json\",\n  },\n  body: JSON.stringify({ toolType: \"skill\", toolId: \"skill_xyz789\" }),\n});\n// Allowlist: an agent can only call tools explicitly assigned to it.\n// Block via DELETE /agents/{id}/tools/{toolId}."
           }
-        ],
-        "description": ""
+        ]
       }
     },
     "/agents/{id}/tools/{toolId}": {
@@ -2774,7 +2759,6 @@
         "tags": [
           "Agents"
         ],
-        "description": "",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -2840,7 +2824,6 @@
         "tags": [
           "Agents"
         ],
-        "description": "",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -2852,6 +2835,41 @@
             "label": "Node.js",
             "source": "// For most state transitions prefer the dedicated endpoints (/pause, /resume,\n// /kill) which carry semantic intent. PATCH /status is the generic mutation\n// when you need to set a state programmatically (migrations, batch ops).\nconst response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/status`, {\n  method: \"PATCH\",\n  headers: {\n    Authorization: `ApiKey ${process.env.RELAYER_API_KEY}`,\n    \"Content-Type\": \"application/json\",\n  },\n  body: JSON.stringify({ status: \"paused\" }),\n});"
           }
+        ]
+      },
+      "get": {
+        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: agent HMAC or API key.** Accepts the agent's own HMAC credentials (runtime self-call) **or** the integrator's ApiKey (backend query on the agent's behalf).\n<!-- relayer:auth-badge:end -->\n\nReturns the agent's current lifecycle status and a `killSwitch` boolean (`true` iff status === 'killed'). Polled every 30s by `@relayerfi/agent-sdk` KillSwitch to gate payment operations. Accepts the agent's own HMAC headers or an integrator API key.",
+        "operationId": "AgentController_getAgentStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Agent UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Status payload: `{ agentId, killSwitch, status }`"
+          },
+          "403": {
+            "description": "Agent can only access its own resources"
+          },
+          "404": {
+            "description": "Agent not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get agent status and kill-switch state (HMAC or API key)",
+        "tags": [
+          "Agents"
         ]
       }
     },
@@ -2907,8 +2925,7 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/budget`, {\n  method: \"POST\",\n  headers: {\n    Authorization: `ApiKey ${process.env.RELAYER_API_KEY}`,\n    \"Content-Type\": \"application/json\",\n  },\n  body: JSON.stringify({\n    infrastructure: { monthlyUSD: 50 },\n    tokens:         { monthlyUSD: 200 },\n    payments:       {\n      monthlyUSDC: 1000,\n      perTxUSDC: 100,\n      approvalThresholdUSDC: 50,\n    },\n  }),\n});\n// Three independent layers. checkBudget() (telemetry) queries 1+2.\n// checkPaymentBudget() (payments) queries all 3 + kill switch."
           }
-        ],
-        "description": ""
+        ]
       },
       "get": {
         "operationId": "AgentController_getBudget",
@@ -2943,6 +2960,7 @@
         "tags": [
           "Agents"
         ],
+        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: agent HMAC or API key.** Accepts the agent's own HMAC credentials (runtime self-call) **or** the integrator's ApiKey (backend query on the agent's behalf).\n<!-- relayer:auth-badge:end -->",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -2954,8 +2972,7 @@
             "label": "Node.js (SDK, agent-side)",
             "source": "import { RelayerSDK } from \"@relayerfi/agent-sdk\";\n\nconst sdk = new RelayerSDK({ /* ... */ });\n\n// The SDK polls this internally; you rarely call it manually.\nconst budget = await sdk.checkBudget(); // layers 1+2 (telemetry)\nconst payBudget = await sdk.checkPaymentBudget(); // layers 1+2+3 + kill switch\n\n// Throws BudgetExhaustedError with .failedLayers if any layer is empty."
           }
-        ],
-        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: agent HMAC or API key.** Accepts the agent's own HMAC credentials (runtime self-call) **or** the integrator's ApiKey (backend query on the agent's behalf).\n<!-- relayer:auth-badge:end -->"
+        ]
       }
     },
     "/agents/{id}/wallet-balance": {
@@ -3049,8 +3066,7 @@
             "label": "Node.js",
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/wallet`, {\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\nconst { data } = await response.json();\n// data.address (Solana base58)\n// data.explorerUrl (solscan link)"
           }
-        ],
-        "description": ""
+        ]
       }
     },
     "/agents/{id}/fund/prepare": {
@@ -3212,6 +3228,7 @@
         "tags": [
           "Agents"
         ],
+        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: agent HMAC.** Called by the agent SDK at runtime with `x-agent-id`, `x-agent-auth`, `x-request-timestamp` headers. **Not callable from backend ApiKey.** See [Authentication → Agent HMAC](/get-started/authentication).\n<!-- relayer:auth-badge:end -->",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -3223,8 +3240,7 @@
             "label": "Node.js (SDK)",
             "source": "import { RelayerSDK } from \"@relayerfi/agent-sdk\";\n\nconst sdk = new RelayerSDK({\n  agentId: process.env.RELAYER_AGENT_ID!,\n  agentSecret: process.env.RELAYER_AGENT_SECRET!,\n  apiUrl: \"https://api.relayer.fi\",\n});\n\nconst response = await sdk.http.request(\"POST\", `/agents/${sdk.agentId}/sign-transaction`, {\n  unsignedTx: base64SolanaTx,\n});\n// response.signature — base64 signature ready to submit to Solana RPC"
           }
-        ],
-        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: agent HMAC.** Called by the agent SDK at runtime with `x-agent-id`, `x-agent-auth`, `x-request-timestamp` headers. **Not callable from backend ApiKey.** See [Authentication → Agent HMAC](/get-started/authentication).\n<!-- relayer:auth-badge:end -->"
+        ]
       }
     },
     "/agents/{id}/x402-pay": {
@@ -3268,6 +3284,7 @@
         "tags": [
           "Agents"
         ],
+        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: agent HMAC.** Called by the agent SDK at runtime with `x-agent-id`, `x-agent-auth`, `x-request-timestamp` headers. **Not callable from backend ApiKey.** See [Authentication → Agent HMAC](/get-started/authentication).\n<!-- relayer:auth-badge:end -->",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -3279,8 +3296,7 @@
             "label": "Node.js (SDK)",
             "source": "import { RelayerSDK } from \"@relayerfi/agent-sdk\";\n\nconst sdk = new RelayerSDK({\n  agentId: process.env.RELAYER_AGENT_ID!,\n  agentSecret: process.env.RELAYER_AGENT_SECRET!,\n  apiUrl: \"https://api.relayer.fi\",\n});\n\n// One-liner: 402 detection → budget check → USDC payment → retry.\n// Throws BudgetExhaustedError, ApprovalTimeoutError, or KillSwitchActiveError.\nconst response = await sdk.x402fetch(\"https://skill.example/api/run\", {\n  method: \"POST\",\n  body: JSON.stringify({ input: \"Tell me a joke\" }),\n});\nconst result = await response.json();"
           }
-        ],
-        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: agent HMAC.** Called by the agent SDK at runtime with `x-agent-id`, `x-agent-auth`, `x-request-timestamp` headers. **Not callable from backend ApiKey.** See [Authentication → Agent HMAC](/get-started/authentication).\n<!-- relayer:auth-badge:end -->"
+        ]
       }
     },
     "/signing/approval-config": {
@@ -3662,8 +3678,7 @@
             "label": "Node.js",
             "source": "const response = await fetch(\"https://api.relayer.fi/v1/action/skills\", {\n  method: \"POST\",\n  headers: {\n    Authorization: `ApiKey ${process.env.RELAYER_API_KEY}`,\n    \"Content-Type\": \"application/json\",\n  },\n  body: JSON.stringify({\n    name: \"Crypto Price Oracle\",\n    description: \"Returns current price for any ticker\",\n    endpoint: \"https://my-skill.example/api/run\",\n    priceUSDC: \"0.05\",\n    visibility: \"public\",\n    inputSchema: { type: \"object\", properties: { symbol: { type: \"string\" } } },\n  }),\n});\n// Once registered, agents can discover it via /action/skills/bazaar\n// and call it via x402fetch (the SDK handles payment automatically)."
           }
-        ],
-        "description": ""
+        ]
       },
       "get": {
         "operationId": "SkillController_listSkills",
@@ -3696,8 +3711,7 @@
             "label": "Node.js",
             "source": "const response = await fetch(\"https://api.relayer.fi/v1/action/skills\", {\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\nconst { data } = await response.json();\n// Returns your private skills + all public skills (visible to any integrator)."
           }
-        ],
-        "description": ""
+        ]
       }
     },
     "/action/skills/bazaar": {
@@ -3718,7 +3732,6 @@
         "tags": [
           "Skills"
         ],
-        "description": "",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -3763,7 +3776,6 @@
         "tags": [
           "Skills"
         ],
-        "description": "",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -3808,7 +3820,6 @@
         "tags": [
           "Skills"
         ],
-        "description": "",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -3854,7 +3865,6 @@
         "tags": [
           "Skills"
         ],
-        "description": "",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -3914,7 +3924,6 @@
         "tags": [
           "Skills"
         ],
-        "description": "",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -3961,7 +3970,6 @@
         "tags": [
           "Skills"
         ],
-        "description": "",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -4021,6 +4029,7 @@
         "tags": [
           "Skills"
         ],
+        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: agent HMAC or API key.** Accepts the agent's own HMAC credentials (runtime self-call) **or** the integrator's ApiKey (backend query on the agent's behalf).\n<!-- relayer:auth-badge:end -->",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -4032,8 +4041,7 @@
             "label": "Node.js (skills-client)",
             "source": "import { executeSkillTool } from \"@relayerfi/skills-client\";\nimport { RelayerSDK } from \"@relayerfi/agent-sdk\";\n\nconst sdk = new RelayerSDK({ /* ... */ });\n\n// As a Mastra tool — the agent picks the skill and parameters.\nconst tool = executeSkillTool(sdk);\n// agent.tools.push(tool);\n\n// Direct call:\nconst result = await sdk.http.request(\"POST\", `/action/skills/${skillId}/execute`, {\n  input: { query: \"current AVAX price\" },\n});"
           }
-        ],
-        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: agent HMAC or API key.** Accepts the agent's own HMAC credentials (runtime self-call) **or** the integrator's ApiKey (backend query on the agent's behalf).\n<!-- relayer:auth-badge:end -->"
+        ]
       }
     },
     "/signing/passkeys/challenge": {
@@ -5056,7 +5064,6 @@
         "tags": [
           "Action: Execute"
         ],
-        "description": "",
         "x-codeSamples": [
           {
             "lang": "bash",
@@ -7551,8 +7558,7 @@
             "label": "Node.js",
             "source": "const response = await fetch(\n  `https://api.relayer.fi/v1/payout/accounts/${reference}/status`,\n  { headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` } },\n);"
           }
-        ],
-        "description": ""
+        ]
       }
     },
     "/orders/{id}": {
@@ -7969,7 +7975,7 @@
       "description": "Development server"
     },
     {
-      "url": "https://testnet.relayer.fi/v1",
+      "url": "https://relayer-api.onrender.com/v1",
       "description": "Sandbox server"
     },
     {
