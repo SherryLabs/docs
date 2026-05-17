@@ -160,6 +160,7 @@
                 "group": "Runtime (HMAC)",
                 "pages": [
                   "GET /agents/{id}/status",
+                  "GET /agents/{id}/balance",
                   "GET /agents/{id}/budget",
                   "POST /agents/{id}/sign-transaction",
                   "POST /agents/events/batch",

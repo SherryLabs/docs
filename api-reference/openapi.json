@@ -3079,7 +3079,8 @@
             "source": "const response = await fetch(`https://api.relayer.fi/v1/agents/${agentId}/wallet`, {\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\nconst { data } = await response.json();\n// data.address (Solana base58)\n// data.explorerUrl (solscan link)"
           }
         ],
-        "description": ""
+        "description": "",
+        "deprecated": true
       }
     },
     "/agents/{id}/fund/prepare": {
@@ -7896,6 +7897,40 @@
             "source": "const params = new URLSearchParams({ limit: \"20\", status: \"awaiting_funds\" });\nconst response = await fetch(`https://api.relayer.fi/v1/orders?${params}`, {\n  headers: { Authorization: `ApiKey ${process.env.RELAYER_API_KEY}` },\n});\nconst { data, meta } = await response.json();\n// Unified across on-ramp, off-ramp, and global payment rails.\n// Cursor-based pagination via meta.nextCursor."
           }
         ]
+      }
+    },
+    "/agents/{id}/balance": {
+      "get": {
+        "operationId": "AgentController_getAgentBalance",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Agent UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wallet info with explorer URL"
+          },
+          "404": {
+            "description": "Agent or wallet not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get agent wallet balance with budget context (HMAC or API key)",
+        "tags": [
+          "Agents"
+        ],
+        "description": "<!-- relayer:auth-badge:start -->\n> **Auth: agent HMAC or API key.** Accepts the agent's own HMAC credentials (runtime self-call) **or** the integrator's ApiKey (backend query on the agent's behalf).\n<!-- relayer:auth-badge:end -->\n\nReturns the agent wallet financial snapshot: address, on-chain USDC balance, budget committed/free amounts, runway estimation, and a Solana explorer URL. Use this from the agent SDK to check fund availability before a payment, or from your backend to monitor agent health. Replaces the deprecated GET /wallet and /wallet-balance."
       }
     }
   },

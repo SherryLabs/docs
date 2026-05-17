@@ -102,6 +102,7 @@ export const authModes = {
 
   // Agent reads accepted via HMAC or ApiKey
   "GET /agents/{id}/budget": "hmac-or-api-key",
+  "GET /agents/{id}/balance": "hmac-or-api-key",
   "GET /agents/{id}/wallet-balance": "hmac-or-api-key",
   "GET /agents/{id}/analytics": "hmac-or-api-key",
   "GET /agents/{id}/status": "hmac-or-api-key",
