@@ -8008,16 +8008,12 @@
   ],
   "servers": [
     {
-      "url": "http://localhost:4000/v1",
-      "description": "Development server"
-    },
-    {
-      "url": "https://relayer-api.onrender.com/v1",
-      "description": "Sandbox server"
+      "url": "https://testnet.relayer.fi/v1",
+      "description": "Sandbox (testnet wallets, no real fiat)"
     },
     {
       "url": "https://api.relayer.fi/v1",
-      "description": "Production server"
+      "description": "Production (mainnet wallets, regulated fiat rails)"
     }
   ],
   "components": {
