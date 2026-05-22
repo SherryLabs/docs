@@ -7,7 +7,7 @@ sidebarTitle: "Flow Guide"
 The Agent Kit lifecycle has four stages: **provision**, **fund**, **operate**, and **respond to approvals**. Every passkey-signed step uses prepare/confirm so private key material never leaves the secure enclave.
 
 <Note>
-  **Dashboard-driven stages** (passkey-stamped today): provision, fund, configure budget, kill, rotate. The endpoints exist but require a passkey ceremony bound to RP `relayer.fi`, so the dashboard orchestrates them — third-party SDK path is planned (see [RFC #21](https://github.com/SherryLabs/relayer/pull/21) and [RFC #23](https://github.com/SherryLabs/relayer/pull/23)).
+  **Dashboard-driven stages** (passkey-stamped today): provision, fund, configure budget, kill, rotate. The endpoints exist but require a passkey ceremony bound to RP `relayer.fi`, so the dashboard orchestrates them — third-party SDK path is planned (see [RFC #21](https://github.com/relayerfi/relayer/pull/21) and [RFC #23](https://github.com/relayerfi/relayer/pull/23)).
 
   **Backend/SDK-driven stages**: operate (runtime HMAC), pause/resume, all reads.
 </Note>

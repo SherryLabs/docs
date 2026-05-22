@@ -6,7 +6,7 @@ on:
       api_repo:
         description: 'API repository (owner/repo)'
         required: false
-        default: 'SherryLabs/relayer-api'
+        default: 'relayerfi/relayer-api'
       branch:
         description: 'Branch to fetch from'
         required: false
@@ -28,10 +28,10 @@ jobs:
         id: repo_info
         run: |
           if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
-            echo "repo=${{ github.event.client_payload.api_repo || 'SherryLabs/relayer-api' }}" >> $GITHUB_OUTPUT
+            echo "repo=${{ github.event.client_payload.api_repo || 'relayerfi/relayer-api' }}" >> $GITHUB_OUTPUT
             echo "branch=${{ github.event.client_payload.branch || 'develop' }}" >> $GITHUB_OUTPUT
           else
-            echo "repo=${{ github.event.inputs.api_repo || 'SherryLabs/relayer-api' }}" >> $GITHUB_OUTPUT
+            echo "repo=${{ github.event.inputs.api_repo || 'relayerfi/relayer-api' }}" >> $GITHUB_OUTPUT
             echo "branch=${{ github.event.inputs.branch || 'develop' }}" >> $GITHUB_OUTPUT
           fi
 
