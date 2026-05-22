@@ -4,11 +4,23 @@
   "theme": "mint",
   "name": "Relayer.fi",
   "colors": {
-    "primary": "#2C8C99",
-    "light": "#38BFC2",
-    "dark": "#38BFC2"
+    "primary": "#015F51",
+    "light": "#ECE6D6",
+    "dark": "#015F51"
   },
-  "favicon": "/images/favicon.ico",
+  "fonts": {
+    "family": "Archivo"
+  },
+  "background": {
+    "color": {
+      "light": "#F6F6F4",
+      "dark": "#1A1A19"
+    }
+  },
+  "favicon": {
+    "light": "/images/relayer-isotype-petrol.svg",
+    "dark": "/images/relayer-isotype-cream.svg"
+  },
   "navigation": {
     "tabs": [
       {
@@ -219,8 +231,8 @@
     }
   },
   "logo": {
-    "light": "/images/Relayer-darklogo-coloriso.png",
-    "dark": "/images/Relayer-whitelogo-coloriso.svg"
+    "light": "/images/relayer-isotype-petrol.svg",
+    "dark": "/images/relayer-isotype-cream.svg"
   },
   "navbar": {
     "links": [
